@@ -51,14 +51,15 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-.metadata/
-.setting/
-Debug/
-Release/
+**/.metadata/
+**/.setting/
+**/Debug/
+**/Release/
 *.launch
 
-.directory
+**/.directory
+
 *.zip
-CMSIS-Full
-CMSIS-All
+**/CMSIS-Full
+**/CMSIS-All
 02_BasePrueba/.settings/org.eclipse.core.resources.prefs
