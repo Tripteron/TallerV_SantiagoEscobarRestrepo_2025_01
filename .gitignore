@@ -50,3 +50,18 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+
+# Modificado para TallerV
+# folders
+.metadata/
+.setting/
+Debug/
+Release/
+*.launch
+
+#others
+.directory
+*.zip
+CMSIS-Full
+CMSUS-All
