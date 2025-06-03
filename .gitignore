@@ -58,7 +58,6 @@ Release/
 *.launch
 
 .directory
-
 *.zip
 CMSIS-Full
 CMSIS-All
