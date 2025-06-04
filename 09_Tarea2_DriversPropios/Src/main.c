@@ -147,6 +147,43 @@ void gpioConfig(void)
 	pinSegmentG.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinSegmentG);
 
+	/* 7 segmentos digitos */
+	pinDigit1.pGPIOx = GPIOC;
+	pinDigit1.pinConfig.GPIO_PinNumber = PIN_6;
+	pinDigit1.pinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	pinDigit1.pinConfig.GPIO_PinOutputType = GPIO_OTYPE_PUSHPULL;
+	pinDigit1.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	pinDigit1.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
+	gpio_Config(&pinDigit1);
+
+	/* 7 segmentos digitos */
+	pinDigit2.pGPIOx = GPIOC;
+	pinDigit2.pinConfig.GPIO_PinNumber = PIN_5;
+	pinDigit2.pinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	pinDigit2.pinConfig.GPIO_PinOutputType = GPIO_OTYPE_PUSHPULL;
+	pinDigit2.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	pinDigit2.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
+	gpio_Config(&pinDigit2);
+
+	/* 7 segmentos digitos */
+	pinDigit3.pGPIOx = GPIOA;
+	pinDigit3.pinConfig.GPIO_PinNumber = PIN_11;
+	pinDigit3.pinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	pinDigit3.pinConfig.GPIO_PinOutputType = GPIO_OTYPE_PUSHPULL;
+	pinDigit3.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	pinDigit3.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
+	gpio_Config(&pinDigit3);
+
+	/* 7 segmentos digitos */
+	pinDigit4.pGPIOx = GPIOA
+	pinDigit4.pinConfig.GPIO_PinNumber = PIN_12;
+	pinDigit4.pinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	pinDigit4.pinConfig.GPIO_PinOutputType = GPIO_OTYPE_PUSHPULL;
+	pinDigit4.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	pinDigit4.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
+	gpio_Config(&pinDigit4);
+
+
 
 
 
