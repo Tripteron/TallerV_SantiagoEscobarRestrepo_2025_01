@@ -72,4 +72,3 @@ int __io_getchar(void){
 	ch = USART2->DR;
 	return ch;
 }
-
