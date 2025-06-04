@@ -376,10 +376,32 @@ void mostrarUnidades(void)
 	gpio_WritePin(&pinDigit4, RESET);
 }
 
+void mostrarDecenas(void)
+{
+	gpio_WritePin(&pinDigit1, SET);
+	gpio_WritePin(&pinDigit2, SET);
+	gpio_WritePin(&pinDigit3, SET);
+	segmentoON(unidades);
+	gpio_WritePin(&pinDigit4, RESET);
+}
 
+void mostrarCentenas(void)
+{
+	gpio_WritePin(&pinDigit1, SET);
+	gpio_WritePin(&pinDigit2, SET);
+	gpio_WritePin(&pinDigit3, SET);
+	segmentoON(unidades);
+	gpio_WritePin(&pinDigit4, RESET);
+}
 
-
-
+void mostrarMiles(void)
+{
+	gpio_WritePin(&pinDigit1, SET);
+	gpio_WritePin(&pinDigit2, SET);
+	gpio_WritePin(&pinDigit3, SET);
+	segmentoON(unidades);
+	gpio_WritePin(&pinDigit4, RESET);
+}
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 //TIMERS
