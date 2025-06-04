@@ -16,12 +16,14 @@
  ******************************************************************************
  */
 
+/* ------------ Librerias ------------------ */
 #include <stdint.h>
 #include "magic.c"
 #include "gpio_driver_hal.h"
 #include "exti_driver_hal.h"
 #include "timer_driver_hal.h"
 #include "stm32f4xx.h"
+
 /* ---------- Definición de Variables de las clases ---------------- */
 GPIO_Handler_t pinEncoderCLK = {0};
 GPIO_Handler_t pinEncoderDT = {0};
@@ -38,6 +40,11 @@ GPIO_Handler_t pinEncoderDigit2 = {0};
 GPIO_Handler_t pinEncoderDigit3 = {0};
 GPIO_Handler_t pinEncoderDigit4 = {0};
 
+Timer_Handler_t display7SegmentTime = {0};
+Timer_Handler_t blinkLedPinH1 = {0};
+
+EXTI_Config_t pinExtiEncoderCLK = {0};
+EXTI_Config_t pinExtiEncoderSW = {0};
 
 
 
