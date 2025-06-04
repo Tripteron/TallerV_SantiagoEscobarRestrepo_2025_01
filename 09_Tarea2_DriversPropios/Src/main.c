@@ -26,11 +26,17 @@
 GPIO_Handler_t pinEncoderCLK = {0};
 GPIO_Handler_t pinEncoderDT = {0};
 GPIO_Handler_t pinEncoderSW = {0};
-
-
-
-
-
+GPIO_Handler_t pinEncoderSegmentA = {0};
+GPIO_Handler_t pinEncoderSegmentB = {0};
+GPIO_Handler_t pinEncoderSegmentC = {0};
+GPIO_Handler_t pinEncoderSegmentD = {0};
+GPIO_Handler_t pinEncoderSegmentE = {0};
+GPIO_Handler_t pinEncoderSegmentF = {0};
+GPIO_Handler_t pinEncoderSegmentG = {0};
+GPIO_Handler_t pinEncoderDigit1 = {0};
+GPIO_Handler_t pinEncoderDigit2 = {0};
+GPIO_Handler_t pinEncoderDigit3 = {0};
+GPIO_Handler_t pinEncoderDigit4 = {0};
 
 
 
