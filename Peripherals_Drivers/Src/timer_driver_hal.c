@@ -455,7 +455,6 @@ void TIM4_IRQHandler(void) {
 
 	Timer4_Callback();
 
-	// Timer_Callback(4);
 
 }
 
@@ -471,7 +470,6 @@ void TIM5_IRQHandler(void) {
 
 	Timer5_Callback();
 
-	// Timer_Callback(5);
 
 
 }
@@ -488,7 +486,6 @@ void TIM9_IRQHandler(void) {
 
 	Timer9_Callback();
 
-	// Timer_Callback(9);
 
 }
 
@@ -504,7 +501,6 @@ void TIM10_IRQHandler(void) {
 
 	Timer10_Callback();
 
-	// Timer_Callback(10);
 
 }
 
@@ -520,7 +516,6 @@ void TIM11_IRQHandler(void) {
 
 	Timer11_Callback();
 
-	//Timer_Callback(11);
 
 
 }

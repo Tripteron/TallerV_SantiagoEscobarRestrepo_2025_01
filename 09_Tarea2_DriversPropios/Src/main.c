@@ -62,6 +62,7 @@ int main(void)
 {
 	gpioConfig();
 	timerConfig();
+	extiConfig();
     /* Loop forever */
 	while(1)
 	{
@@ -212,6 +213,16 @@ void timerConfig(void)
 	timer_SetState(&blinkLedPinH1, TIMER_ON);
 }
 
+void extiConfig(void)
+{
+	pinExtiEncoderCLK.pGPIOHandler = &pinEncoderCLK;
+	pinExtiEncoderCLK.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
+	exti_Config(&pinExtiEncoderCLK);
+
+	pinExtiEncoderSW.pGPIOHandler = &pinEncoderSW;
+	pinExtiEncoderSW.edgeType = EXTERNAL_INTERRUPT_RISING_EDGE;
+	exti_Config(&pinExtiEncoderSW);
+}
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 
