@@ -25,6 +25,13 @@
 #include "stm32f4xx.h"
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
+uint8_t miles = 0;
+uint8_t centenas = 0;
+uint8_t decenas = 0;
+uint8_t	unidades = 0;
+
+
+
 GPIO_Handler_t pinH1Led2Board = {0};
 GPIO_Handler_t pinEncoderCLK = {0};
 GPIO_Handler_t pinEncoderDT = {0};
@@ -54,6 +61,7 @@ void gpioConfig(void);
 void extiConfig(void);
 void timerConfig(void);
 void segmentoON(uint8_t number);
+void divideNumber(uint16_t contador);
 
 
 
@@ -232,6 +240,14 @@ void extiConfig(void)
 	exti_Config(&pinExtiEncoderSW);
 }
 
+void divideNumber(uint16_t contador)
+{
+	miles =
+	centenes =
+	decenas =
+	unidades =
+}
+
 
 
 void segmentoON(uint8_t number)
@@ -250,23 +266,23 @@ void segmentoON(uint8_t number)
 		break;
 
 		case 1:
-			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentA, RESET);
 			gpio_WritePin(&pinSegmentB, SET);
 			gpio_WritePin(&pinSegmentC, SET);
-			gpio_WritePin(&pinSegmentD, SET);
-			gpio_WritePin(&pinSegmentE, SET);
-			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentD, RESET);
+			gpio_WritePin(&pinSegmentE, RESET);
+			gpio_WritePin(&pinSegmentF, RESET);
 			gpio_WritePin(&pinSegmentG, RESET);
 		break;
 
 		case 2:
 			gpio_WritePin(&pinSegmentA, SET);
 			gpio_WritePin(&pinSegmentB, SET);
-			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentC, RESET);
 			gpio_WritePin(&pinSegmentD, SET);
 			gpio_WritePin(&pinSegmentE, SET);
-			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentF, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		case 3:
@@ -274,48 +290,48 @@ void segmentoON(uint8_t number)
 			gpio_WritePin(&pinSegmentB, SET);
 			gpio_WritePin(&pinSegmentC, SET);
 			gpio_WritePin(&pinSegmentD, SET);
-			gpio_WritePin(&pinSegmentE, SET);
-			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentE, RESET);
+			gpio_WritePin(&pinSegmentF, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		case 4:
-			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentA, RESET);
 			gpio_WritePin(&pinSegmentB, SET);
 			gpio_WritePin(&pinSegmentC, SET);
-			gpio_WritePin(&pinSegmentD, SET);
-			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentD, RESET);
+			gpio_WritePin(&pinSegmentE, RESET);
 			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		case 5:
 			gpio_WritePin(&pinSegmentA, SET);
-			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentB, RESET);
 			gpio_WritePin(&pinSegmentC, SET);
 			gpio_WritePin(&pinSegmentD, SET);
-			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentE, RESET);
 			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		case 6:
 			gpio_WritePin(&pinSegmentA, SET);
-			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentB, RESET);
 			gpio_WritePin(&pinSegmentC, SET);
 			gpio_WritePin(&pinSegmentD, SET);
 			gpio_WritePin(&pinSegmentE, SET);
 			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		case 7:
 			gpio_WritePin(&pinSegmentA, SET);
 			gpio_WritePin(&pinSegmentB, SET);
 			gpio_WritePin(&pinSegmentC, SET);
-			gpio_WritePin(&pinSegmentD, SET);
-			gpio_WritePin(&pinSegmentE, SET);
-			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentD, RESET);
+			gpio_WritePin(&pinSegmentE, RESET);
+			gpio_WritePin(&pinSegmentF, RESET);
 			gpio_WritePin(&pinSegmentG, RESET);
 		break;
 
@@ -326,7 +342,7 @@ void segmentoON(uint8_t number)
 			gpio_WritePin(&pinSegmentD, SET);
 			gpio_WritePin(&pinSegmentE, SET);
 			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		case 9:
@@ -334,9 +350,9 @@ void segmentoON(uint8_t number)
 			gpio_WritePin(&pinSegmentB, SET);
 			gpio_WritePin(&pinSegmentC, SET);
 			gpio_WritePin(&pinSegmentD, SET);
-			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentE, RESET);
 			gpio_WritePin(&pinSegmentF, SET);
-			gpio_WritePin(&pinSegmentG, RESET);
+			gpio_WritePin(&pinSegmentG, SET);
 		break;
 
 		default:
