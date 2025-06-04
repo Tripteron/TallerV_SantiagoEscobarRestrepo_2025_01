@@ -25,6 +25,8 @@
 #include "stm32f4xx.h"
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
+uint16_t contador = 0;
+
 uint8_t miles = 0;
 uint8_t centenas = 0;
 uint8_t decenas = 0;
@@ -242,10 +244,10 @@ void extiConfig(void)
 
 void divideNumber(uint16_t contador)
 {
-	miles =
-	centenes =
-	decenas =
-	unidades =
+	miles = contador/1000;
+	centenas = contador/100 %10;
+	decenas = contador/10 %10;
+	unidades = contador%10;
 }
 
 
