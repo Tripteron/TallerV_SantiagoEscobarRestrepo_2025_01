@@ -199,5 +199,17 @@ void gpioConfig(void)
 	gpio_WritePin(&pinDigit4, SET);
 }
 
+void timerConfig(void)
+{
+	blinkLedPinH1.pTIMx = TIM2;
+	blinkLedPinH1.TIMx_Config.TIMx_Prescaler = 16000;
+	blinkLedPinH1.TIMx_Config.TIMx_Period = 501;
+	blinkLedPinH1.TIMx_Config.TIMx_mode = TIMER_UP_COUNTER;
+	blinkLedPinH1.TIMx_Config.TIMx_InterruptEnable = TIMER_INT_ENABLE;
+	timer_Config(&blinkLedPinH1);
+	timer_SetState(&blinkLedPinH1, TIMER_ON);
+}
+
+
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 
