@@ -338,6 +338,11 @@ void segmentoON(uint8_t number)
 			gpio_WritePin(&pinSegmentF, SET);
 			gpio_WritePin(&pinSegmentG, RESET);
 		break;
+
+		default:
+		{
+			break;
+		}
 	}
 }
 
