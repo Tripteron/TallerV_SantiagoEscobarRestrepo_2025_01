@@ -91,9 +91,16 @@ void gpioConfig(void)
 	pinEncoderCLK.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	gpio_Config(&pinEncoderCLK);
 
+	//Encoder pin DT
+	pinEncoderDT.pGPIOx = GPIOB;
+	pinEncoderDT.pinConfig.GPIO_PinNumber = PIN_10;
+	pinEncoderDT.pinConfig.GPIO_PinMode = GPIO_MODE_IN;
+	pinEncoderDT.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	gpio_Config(&pinEncoderDT);
+
 	//Encoder pin SW
-	pinEncoderSW.pGPIOx = GPIOB;
-	pinEncoderSW.pinConfig.GPIO_PinNumber = PIN_5;
+	pinEncoderSW.pGPIOx = GPIOA;
+	pinEncoderSW.pinConfig.GPIO_PinNumber = PIN_8;
 	pinEncoderSW.pinConfig.GPIO_PinMode = GPIO_MODE_IN;
 	pinEncoderSW.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	gpio_Config(&pinEncoderSW);
@@ -225,8 +232,16 @@ void extiConfig(void)
 }
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
-
+//TIMERS
 void Timer2_Callback(void)
 {
 	gpio_TogglePin(&pinH1Led2Board);
 }
+
+//EXTI
+void callback_ExtInt5(void)
+{
+
+}
+
+void callback_ExtInt
