@@ -232,6 +232,117 @@ void extiConfig(void)
 	exti_Config(&pinExtiEncoderSW);
 }
 
+
+
+void segmentoON(uint8_t number)
+{
+	switch(number)
+	{
+
+		case 0:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 1:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 2:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 3:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 4:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 5:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 6:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 7:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 8:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+
+		case 9:
+			gpio_WritePin(&pinSegmentA, SET);
+			gpio_WritePin(&pinSegmentB, SET);
+			gpio_WritePin(&pinSegmentC, SET);
+			gpio_WritePin(&pinSegmentD, SET);
+			gpio_WritePin(&pinSegmentE, SET);
+			gpio_WritePin(&pinSegmentF, SET);
+			gpio_WritePin(&pinSegmentG, RESET);
+		break;
+	}
+}
+
+
+
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 //TIMERS
 void Timer2_Callback(void) // Para LED2 de Board (PinH1)
