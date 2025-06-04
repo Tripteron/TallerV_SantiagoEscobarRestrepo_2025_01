@@ -23,6 +23,11 @@
 #include "timer_driver_hal.h"
 #include "stm32f4xx.h"
 
+/* ------------------ HEADERS FOR PRIVATE FUNCTIONS ------------- */
+void gpioConfig(void);
+void extiConfig(void);
+void timerConfig(void);
+
 
 
 
