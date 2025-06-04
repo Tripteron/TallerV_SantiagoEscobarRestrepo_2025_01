@@ -60,6 +60,7 @@ void timerConfig(void);
 /* ------------------ CLASS FUNCTIONS ------------ */
 int main(void)
 {
+	gpioConfig();
     /* Loop forever */
 	while(1)
 	{
@@ -165,6 +166,7 @@ void gpioConfig(void)
 	pinDigit1.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	pinDigit1.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinDigit1);
+	gpio_WritePin(&pinDigit1, SET);
 
 	/* 7 segmentos digitos */
 	pinDigit2.pGPIOx = GPIOC;
@@ -174,6 +176,7 @@ void gpioConfig(void)
 	pinDigit2.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	pinDigit2.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinDigit2);
+	gpio_WritePin(&pinDigit2, SET);
 
 	/* 7 segmentos digitos */
 	pinDigit3.pGPIOx = GPIOA;
@@ -183,6 +186,7 @@ void gpioConfig(void)
 	pinDigit3.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	pinDigit3.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinDigit3);
+	gpio_WritePin(&pinDigit3, SET);
 
 	/* 7 segmentos digitos */
 	pinDigit4.pGPIOx = GPIOA;
@@ -192,6 +196,7 @@ void gpioConfig(void)
 	pinDigit4.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	pinDigit4.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinDigit4);
+	gpio_WritePin(&pinDigit4, SET);
 }
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
