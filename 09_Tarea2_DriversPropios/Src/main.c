@@ -70,6 +70,10 @@ int main(void)
 /* ------------------- CONFIG FUNCTIONS ----------- */
 void gpioConfig(void)
 {
+	//Encoder
+	pinEncoderCLK.pGPIOx = GPIOB;
+	pinEncoderCLK.pinConfig.GPIO_PinNumber = PIN_5;
+
 
 }
 
