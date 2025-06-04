@@ -28,17 +28,17 @@
 GPIO_Handler_t pinEncoderCLK = {0};
 GPIO_Handler_t pinEncoderDT = {0};
 GPIO_Handler_t pinEncoderSW = {0};
-GPIO_Handler_t pinEncoderSegmentA = {0};
-GPIO_Handler_t pinEncoderSegmentB = {0};
-GPIO_Handler_t pinEncoderSegmentC = {0};
-GPIO_Handler_t pinEncoderSegmentD = {0};
-GPIO_Handler_t pinEncoderSegmentE = {0};
-GPIO_Handler_t pinEncoderSegmentF = {0};
-GPIO_Handler_t pinEncoderSegmentG = {0};
-GPIO_Handler_t pinEncoderDigit1 = {0};
-GPIO_Handler_t pinEncoderDigit2 = {0};
-GPIO_Handler_t pinEncoderDigit3 = {0};
-GPIO_Handler_t pinEncoderDigit4 = {0};
+GPIO_Handler_t pinSegmentA = {0};
+GPIO_Handler_t pinSegmentB = {0};
+GPIO_Handler_t pinSegmentC = {0};
+GPIO_Handler_t pinSegmentD = {0};
+GPIO_Handler_t pinSegmentE = {0};
+GPIO_Handler_t pinSegmentF = {0};
+GPIO_Handler_t pinSegmentG = {0};
+GPIO_Handler_t pinDigit1 = {0};
+GPIO_Handler_t pinDigit2 = {0};
+GPIO_Handler_t pinDigit3 = {0};
+GPIO_Handler_t pinDigit4 = {0};
 
 Timer_Handler_t display7SegmentTime = {0};
 Timer_Handler_t blinkLedPinH1 = {0};
@@ -70,12 +70,25 @@ int main(void)
 /* ------------------- CONFIG FUNCTIONS ----------- */
 void gpioConfig(void)
 {
-	//Encoder
+	//Encoder pin CLK
 	pinEncoderCLK.pGPIOx = GPIOB;
 	pinEncoderCLK.pinConfig.GPIO_PinNumber = PIN_5;
 	pinEncoderCLK.pinConfig.GPIO_PinMode = GPIO_MODE_IN;
 	pinEncoderCLK.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	gpio_Config(&pinEncoderCLK);
+
+	//Encoder pin SW
+	pinEncoderSW.pGPIOx = GPIOB;
+	pinEncoderSW.pinConfig.GPIO_PinNumber = PIN_5;
+	pinEncoderSW.pinConfig.GPIO_PinMode = GPIO_MODE_IN;
+	pinEncoderSW.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	gpio_Config(&pinEncoderSW);
+
+	/* 7 segmentos */
+
+
+
+
 
 
 }
