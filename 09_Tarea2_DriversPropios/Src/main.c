@@ -64,7 +64,10 @@ void extiConfig(void);
 void timerConfig(void);
 void segmentoON(uint8_t number);
 void divideNumber(uint16_t contador);
-
+void mostrarUnidades(void);
+void mostrarDecenas(void);
+void mostrarCentenas(void);
+void mostrarMiles(void);
 
 
 
@@ -363,6 +366,18 @@ void segmentoON(uint8_t number)
 		}
 	}
 }
+
+void mostrarUnidades(void)
+{
+	gpio_WritePin(&pinDigit1, SET);
+	gpio_WritePin(&pinDigit2, SET);
+	gpio_WritePin(&pinDigit3, SET);
+	segmentoON(unidades);
+	gpio_WritePin(&pinDigit4, RESET);
+}
+
+
+
 
 
 
