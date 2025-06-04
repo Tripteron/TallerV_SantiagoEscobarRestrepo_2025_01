@@ -53,6 +53,7 @@ EXTI_Config_t pinExtiEncoderSW = {0};
 void gpioConfig(void);
 void extiConfig(void);
 void timerConfig(void);
+void segmentoON(uint8_t number);
 
 
 
@@ -233,7 +234,7 @@ void extiConfig(void)
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 //TIMERS
-void Timer2_Callback(void)
+void Timer2_Callback(void) // Para LED2 de Board (PinH1)
 {
 	gpio_TogglePin(&pinH1Led2Board);
 }
