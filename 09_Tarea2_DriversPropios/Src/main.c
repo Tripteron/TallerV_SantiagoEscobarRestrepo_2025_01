@@ -25,6 +25,10 @@
 #include "stm32f4xx.h"
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
+
+volatile uint8_t display7segmentFLAG = 0;
+volatile uint8_t encoderCLKextiFLAG = 0;
+volatile uint8_t encoderSWextiFLAG = 0;
 uint16_t contador = 0;
 
 uint8_t miles = 0;
@@ -227,11 +231,20 @@ void timerConfig(void)
 {
 	blinkLedPinH1.pTIMx = TIM2;
 	blinkLedPinH1.TIMx_Config.TIMx_Prescaler = 16000;
-	blinkLedPinH1.TIMx_Config.TIMx_Period = 501;
+	blinkLedPinH1.TIMx_Config.TIMx_Period = 502;
 	blinkLedPinH1.TIMx_Config.TIMx_mode = TIMER_UP_COUNTER;
 	blinkLedPinH1.TIMx_Config.TIMx_InterruptEnable = TIMER_INT_ENABLE;
 	timer_Config(&blinkLedPinH1);
 	timer_SetState(&blinkLedPinH1, TIMER_ON);
+
+	display7SegmentTime.pTIMx = TIM3;
+	display7SegmentTime.TIMx_Config.TIMx_Prescaler = 16000;
+	display7SegmentTime.TIMx_Config.TIMx_Period = 7;
+	display7SegmentTime.TIMx_Config.TIMx_mode = TIMER_UP_COUNTER;
+	display7SegmentTime.TIMx_Config.TIMx_InterruptEnable = TIMER_INT_ENABLE;
+	timer_Config(&display7SegmentTime);
+	timer_SetState(&display7SegmentTime, TIMER_ON);
+
 }
 
 void extiConfig(void)
@@ -380,27 +393,27 @@ void mostrarDecenas(void)
 {
 	gpio_WritePin(&pinDigit1, SET);
 	gpio_WritePin(&pinDigit2, SET);
-	gpio_WritePin(&pinDigit3, SET);
-	segmentoON(unidades);
-	gpio_WritePin(&pinDigit4, RESET);
+	gpio_WritePin(&pinDigit4, SET);
+	segmentoON(decenas);
+	gpio_WritePin(&pinDigit3, RESET);
 }
 
 void mostrarCentenas(void)
 {
 	gpio_WritePin(&pinDigit1, SET);
-	gpio_WritePin(&pinDigit2, SET);
+	gpio_WritePin(&pinDigit4, SET);
 	gpio_WritePin(&pinDigit3, SET);
-	segmentoON(unidades);
-	gpio_WritePin(&pinDigit4, RESET);
+	segmentoON(centenas);
+	gpio_WritePin(&pinDigit2, RESET);
 }
 
 void mostrarMiles(void)
 {
-	gpio_WritePin(&pinDigit1, SET);
+	gpio_WritePin(&pinDigit4, SET);
 	gpio_WritePin(&pinDigit2, SET);
 	gpio_WritePin(&pinDigit3, SET);
-	segmentoON(unidades);
-	gpio_WritePin(&pinDigit4, RESET);
+	segmentoON(miles);
+	gpio_WritePin(&pinDigit1, RESET);
 }
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
@@ -410,13 +423,18 @@ void Timer2_Callback(void) // Para LED2 de Board (PinH1)
 	gpio_TogglePin(&pinH1Led2Board);
 }
 
+void Timer3_Callback(void) // Para LED2 de Board (PinH1)
+{
+	display7segmentFLAG = 1;
+}
+
 //EXTI
 void callback_ExtInt5(void) // pin CLK (PB5)
 {
-
+	encoderCLKextiFLAG = 1;
 }
 
 void callback_ExtInt8(void) //pin SW (PA8)
 {
-
+	encoderSWextiFLAG = 1;
 }
