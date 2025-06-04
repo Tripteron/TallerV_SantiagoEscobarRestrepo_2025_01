@@ -61,6 +61,7 @@ void timerConfig(void);
 int main(void)
 {
 	gpioConfig();
+	timerConfig();
     /* Loop forever */
 	while(1)
 	{
@@ -80,6 +81,7 @@ void gpioConfig(void)
 	pinH1Led2Board.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	pinH1Led2Board.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinH1Led2Board);
+	gpio_WritePin(&pinH1Led2Board, SET);
 
 	//Encoder pin CLK
 	pinEncoderCLK.pGPIOx = GPIOB;
@@ -213,3 +215,7 @@ void timerConfig(void)
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 
+void Timer2_Callback(void)
+{
+	gpio_TogglePin(&pinH1Led2Board);
+}

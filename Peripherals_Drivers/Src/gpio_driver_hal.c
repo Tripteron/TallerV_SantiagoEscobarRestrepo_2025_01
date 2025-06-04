@@ -429,38 +429,17 @@ uint32_t gpio_ReadPin(GPIO_Handler_t *pPinHandler){
 
 void gpio_TogglePin(GPIO_Handler_t *pPinHandler){
 
-	// Alternar el estado del pin (ON <-> OFF)
-
-
-	//Asi estaba antes:
-
-	// pPinHandler->pGPIOx->ODR ^= (1 << pPinHandler->pinConfig.GPIO_PinNumber);
-
-
 	/* De esta manera se tiene un 1 un la posición del número del pin. */
 
 	uint32_t pinMask = (1 << pPinHandler->pinConfig.GPIO_PinNumber);
 
-
-	/*Si ODR está en 1 para un correspondiente pin, es porque hay voltaje de salida (Led prendido por ejemplo).
-
-	* Recordar que en el registro BSRR de 32 bit, del BIT 0 al 15 son para BSy (B SET), y del BIT 16 al 31 son
-
-	* para el BRy (B RESET)
-
-	* */
-
-	if (pPinHandler->pGPIOx->ODR & pinMask) {
-
-
-	pPinHandler->pGPIOx->BSRR = pinMask << 16; // Reset bit
-
-
-	} else {
-
-
-	pPinHandler->pGPIOx->BSRR = pinMask; // Set bit
-
+	if (pPinHandler->pGPIOx->ODR & pinMask)
+	{
+		pPinHandler->pGPIOx->BSRR = pinMask << 16; // Reset bit
+	}
+	else
+	{
+		pPinHandler->pGPIOx->BSRR = pinMask; // Set bit
 	}
 
 }
