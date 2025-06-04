@@ -239,9 +239,12 @@ void Timer2_Callback(void)
 }
 
 //EXTI
-void callback_ExtInt5(void)
+void callback_ExtInt5(void) // pin CLK (PB5)
 {
 
 }
 
-void callback_ExtInt
+void callback_ExtInt8(void) //pin SW (PA8)
+{
+
+}
