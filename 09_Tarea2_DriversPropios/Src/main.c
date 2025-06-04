@@ -22,11 +22,24 @@
 #include "exti_driver_hal.h"
 #include "timer_driver_hal.h"
 #include "stm32f4xx.h"
+/* ---------- Definición de Variables de las clases ---------------- */
+GPIO_Handler_t pinEncoderCLK = {0};
+GPIO_Handler_t pinEncoderDT = {0};
+GPIO_Handler_t pinEncoderSW = {0};
+
+
+
+
+
+
+
+
 
 /* ------------------ HEADERS FOR PRIVATE FUNCTIONS ------------- */
 void gpioConfig(void);
 void extiConfig(void);
 void timerConfig(void);
+
 
 
 
@@ -38,4 +51,10 @@ int main(void)
 
 
 	}return 0;
+}
+
+/* ---------- Config Functions ----------- */
+void gpioConfig(void)
+{
+
 }
