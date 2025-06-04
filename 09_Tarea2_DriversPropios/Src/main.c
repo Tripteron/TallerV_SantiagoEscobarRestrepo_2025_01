@@ -18,7 +18,10 @@
 
 #include <stdint.h>
 #include "magic.c"
-
+#include "gpio_driver_hal.h"
+#include "exti_driver_hal.h"
+#include "timer_driver_hal.h"
+#include "stm32f4xx.h"
 
 
 
