@@ -25,6 +25,7 @@
 #include "stm32f4xx.h"
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
+GPIO_Handler_t pinH1Led2Board = {0};
 GPIO_Handler_t pinEncoderCLK = {0};
 GPIO_Handler_t pinEncoderDT = {0};
 GPIO_Handler_t pinEncoderSW = {0};
@@ -70,6 +71,15 @@ int main(void)
 /* ------------------- CONFIG FUNCTIONS ----------- */
 void gpioConfig(void)
 {
+	/* LED BLINKER BOARD */
+	pinH1Led2Board.pGPIOx = GPIOH;
+	pinH1Led2Board.pinConfig.GPIO_PinNumber = PIN_1;
+	pinH1Led2Board.pinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	pinH1Led2Board.pinConfig.GPIO_PinOutputType = GPIO_OTYPE_PUSHPULL;
+	pinH1Led2Board.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	pinH1Led2Board.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
+	gpio_Config(&pinH1Led2Board);
+
 	//Encoder pin CLK
 	pinEncoderCLK.pGPIOx = GPIOB;
 	pinEncoderCLK.pinConfig.GPIO_PinNumber = PIN_5;
@@ -175,22 +185,13 @@ void gpioConfig(void)
 	gpio_Config(&pinDigit3);
 
 	/* 7 segmentos digitos */
-	pinDigit4.pGPIOx = GPIOA
+	pinDigit4.pGPIOx = GPIOA;
 	pinDigit4.pinConfig.GPIO_PinNumber = PIN_12;
 	pinDigit4.pinConfig.GPIO_PinMode = GPIO_MODE_OUT;
 	pinDigit4.pinConfig.GPIO_PinOutputType = GPIO_OTYPE_PUSHPULL;
 	pinDigit4.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
 	pinDigit4.pinConfig.GPIO_PinOutputSpeed = GPIO_OSPEED_FAST;
 	gpio_Config(&pinDigit4);
-
-
-
-
-
-
-
-
-
 }
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
