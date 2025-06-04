@@ -16,7 +16,7 @@
  ******************************************************************************
  */
 
-/* ------------ Librerias ------------------ */
+/* ----------------- LIBRERIAS ------------------ */
 #include <stdint.h>
 #include "magic.c"
 #include "gpio_driver_hal.h"
@@ -24,7 +24,7 @@
 #include "timer_driver_hal.h"
 #include "stm32f4xx.h"
 
-/* ---------- Definición de Variables de las clases ---------------- */
+/* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
 GPIO_Handler_t pinEncoderCLK = {0};
 GPIO_Handler_t pinEncoderDT = {0};
 GPIO_Handler_t pinEncoderSW = {0};
@@ -56,7 +56,7 @@ void timerConfig(void);
 
 
 
-/* ------------ FUNCIONES DE LA CLASE ------------ */
+/* ------------------ CLASS FUNCTIONS ------------ */
 int main(void)
 {
     /* Loop forever */
@@ -67,11 +67,11 @@ int main(void)
 	}return 0;
 }
 
-/* ---------- CONFIG FUNCTIONS ----------- */
+/* ------------------- CONFIG FUNCTIONS ----------- */
 void gpioConfig(void)
 {
 
 }
 
-/* ------------- INTERRUPT FUNCTIONS -------------- */
+/* -------------------- INTERRUPT FUNCTIONS -------------- */
 
