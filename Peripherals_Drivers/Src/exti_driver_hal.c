@@ -1215,112 +1215,112 @@ EXTI->IMR |=(1 << extiConfig->pGPIOHandler->pinConfig.GPIO_PinNumber );
 
 /**/
 
-__attribute__ ((weak)) void callback_extInt0(void) {
+__attribute__ ((weak)) void callback_ExtInt0(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt1(void) {
+__attribute__ ((weak)) void callback_ExtInt1(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt2(void) {
+__attribute__ ((weak)) void callback_ExtInt2(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt3(void) {
+__attribute__ ((weak)) void callback_ExtInt3(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt4(void) {
+__attribute__ ((weak)) void callback_ExtInt4(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt5(void) {
+__attribute__ ((weak)) void callback_ExtInt5(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt6(void) {
+__attribute__ ((weak)) void callback_ExtInt6(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt7(void) {
+__attribute__ ((weak)) void callback_ExtInt7(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt8(void) {
+__attribute__ ((weak)) void callback_ExtInt8(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt9(void) {
+__attribute__ ((weak)) void callback_ExtInt9(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt10(void) {
+__attribute__ ((weak)) void callback_ExtInt10(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt11(void) {
+__attribute__ ((weak)) void callback_ExtInt11(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt12(void) {
+__attribute__ ((weak)) void callback_ExtInt12(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt13(void) {
+__attribute__ ((weak)) void callback_ExtInt13(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt14(void) {
+__attribute__ ((weak)) void callback_ExtInt14(void) {
 
 __NOP();
 
 }
 
 
-__attribute__ ((weak)) void callback_extInt15(void) {
+__attribute__ ((weak)) void callback_ExtInt15(void) {
 
 __NOP();
 
@@ -1357,7 +1357,7 @@ EXTI->PR |= EXTI_PR_PR0;
 
 // callback_ExtInt0();
 
-callback_extInt0();
+callback_ExtInt0();
 
 }
 
@@ -1381,7 +1381,7 @@ void EXTI1_IRQHandler(void){
 
 	// callback_ExtInt1();
 
-	callback_extInt1();
+	callback_ExtInt1();
 
 	}
 
@@ -1405,7 +1405,7 @@ void EXTI2_IRQHandler(void){
 
 	// callback_ExtInt2();
 
-	callback_extInt2();
+	callback_ExtInt2();
 
 	}
 
@@ -1430,7 +1430,7 @@ void EXTI3_IRQHandler(void){
 
 		// callback_ExtInt3();
 
-		callback_extInt3();
+		callback_ExtInt3();
 
 	}
 
@@ -1455,7 +1455,7 @@ void EXTI4_IRQHandler(void){
 
 		// callback_ExtInt4();
 
-		callback_extInt4();
+		callback_ExtInt4();
 
 	}
 
@@ -1490,7 +1490,7 @@ void EXTI9_5_IRQHandler(void){
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR5;
 		// llamamos al callback
-		callback_extInt5();
+		callback_ExtInt5();
 
 
 	}
@@ -1501,7 +1501,7 @@ void EXTI9_5_IRQHandler(void){
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR6;
 		// llamamos al callback
-		callback_extInt6();
+		callback_ExtInt6();
 
 	}
 
@@ -1515,7 +1515,7 @@ void EXTI9_5_IRQHandler(void){
 
 		// llamamos al callback
 
-		callback_extInt7();
+		callback_ExtInt7();
 
 	}
 
@@ -1525,7 +1525,7 @@ void EXTI9_5_IRQHandler(void){
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR8;
 		// llamamos al callback
-		callback_extInt8();
+		callback_ExtInt8();
 
 	}
 
@@ -1538,7 +1538,7 @@ void EXTI9_5_IRQHandler(void){
 
 		// llamamos al callback
 
-		callback_extInt9();
+		callback_ExtInt9();
 
 	}
 
@@ -1569,7 +1569,7 @@ void EXTI15_10_IRQHandler(void)
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR10;
 		// llamamos al callback
-		callback_extInt10();
+		callback_ExtInt10();
 
 	}
 
@@ -1579,7 +1579,7 @@ void EXTI15_10_IRQHandler(void)
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR11;
 		// llamamos al callback
-		callback_extInt11();
+		callback_ExtInt11();
 
 	}
 
@@ -1589,7 +1589,7 @@ void EXTI15_10_IRQHandler(void)
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR12;
 		// llamamos al callback
-		callback_extInt12();
+		callback_ExtInt12();
 
 	}
 
@@ -1598,7 +1598,7 @@ void EXTI15_10_IRQHandler(void)
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR13;
 		// llamamos al callback
-		callback_extInt13();
+		callback_ExtInt13();
 
 	}
 
@@ -1608,7 +1608,7 @@ void EXTI15_10_IRQHandler(void)
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR14;
 		// llamamos al callback
-		callback_extInt14();
+		callback_ExtInt14();
 
 	}
 
@@ -1617,7 +1617,7 @@ void EXTI15_10_IRQHandler(void)
 		// Bajamos la bandera correspondiente
 		EXTI->PR |= EXTI_PR_PR15;
 		// llamamos al callback
-		callback_extInt15();
+		callback_ExtInt15();
 
 	}
 
