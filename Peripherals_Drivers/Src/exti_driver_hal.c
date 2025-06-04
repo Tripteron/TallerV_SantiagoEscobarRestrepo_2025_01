@@ -1096,13 +1096,6 @@ EXTI->FTSR &= ~(1U << pinNumber);
 
 }
 
-else if (extiConfig->edgeType == EXTERNAL_INTERRUPT_RISING_FALLING_EDGE) {
-
-EXTI->RTSR |= (1U << pinNumber);
-
-EXTI->FTSR |= (1U << pinNumber);
-
-}
 
 }
 
@@ -1143,81 +1136,81 @@ EXTI->IMR |=(1 << extiConfig->pGPIOHandler->pinConfig.GPIO_PinNumber );
 
 * */
 
-switch (extiConfig->pGPIOHandler->pinConfig.GPIO_PinNumber) {
+	switch (extiConfig->pGPIOHandler->pinConfig.GPIO_PinNumber) {
 
 
-// Inicio caso 0
+	// Inicio caso 0
 
-case 0: {
+	case 0: {
 
-__NVIC_EnableIRQ(EXTI0_IRQn);
+	__NVIC_EnableIRQ(EXTI0_IRQn);
 
-break;
+	break;
 
-}//Fin caso 0
+	}//Fin caso 0
 
-case 1:
+	case 1:
 
-__NVIC_EnableIRQ(EXTI1_IRQn); // Línea 1: EXTI1_IRQn
+	__NVIC_EnableIRQ(EXTI1_IRQn); // Línea 1: EXTI1_IRQn
 
-break;
+	break;
 
-case 2:
+	case 2:
 
-__NVIC_EnableIRQ(EXTI2_IRQn); // Línea 2: EXTI2_IRQn
+	__NVIC_EnableIRQ(EXTI2_IRQn); // Línea 2: EXTI2_IRQn
 
-break;
+	break;
 
-case 3:
+	case 3:
 
-__NVIC_EnableIRQ(EXTI3_IRQn); // Línea 3: EXTI3_IRQn
+	__NVIC_EnableIRQ(EXTI3_IRQn); // Línea 3: EXTI3_IRQn
 
-break;
+	break;
 
-case 4:
+	case 4:
 
-__NVIC_EnableIRQ(EXTI4_IRQn); // Línea 4: EXTI4_IRQn
+	__NVIC_EnableIRQ(EXTI4_IRQn); // Línea 4: EXTI4_IRQn
 
-break;
+	break;
 
-case 5: case 6: case 7: case 8: case 9:
+	case 5: case 6: case 7: case 8: case 9:
 
-__NVIC_EnableIRQ(EXTI9_5_IRQn); // Líneas 5 a 9 comparten EXTI9_5_IRQn
+	__NVIC_EnableIRQ(EXTI9_5_IRQn); // Líneas 5 a 9 comparten EXTI9_5_IRQn
 
-break;
-
-
-/* .....
-
-* .....
-
-* .....
-
-* y así hasta el ultimo caso */
+	break;
 
 
-case 10: case 11: case 12: case 13: case 14: case 15:
+	/* .....
 
-__NVIC_EnableIRQ(EXTI15_10_IRQn); // Líneas 10 a 15 comparten EXTI15_10_IRQn
+	* .....
 
-break;
+	* .....
+
+	* y así hasta el ultimo caso */
 
 
-default: {
+	case 10: case 11: case 12: case 13: case 14: case 15:
+
+	__NVIC_EnableIRQ(EXTI15_10_IRQn); // Líneas 10 a 15 comparten EXTI15_10_IRQn
+
+	break;
 
 
-break;
+	default: {
+
+
+	break;
+
+	}
+
+
+	}
 
 }
 
 
-}
-
-}
 
 
-
-// ########## FIN exti_config_interrupt #########################################
 
 
 /**/
@@ -1375,22 +1368,22 @@ callback_extInt0();
 
 void EXTI1_IRQHandler(void){
 
-// Evaluamos si la interrupción que se lanzo corresponde al PIN_0 del GPIO_X
+	// Evaluamos si la interrupción que se lanzo corresponde al PIN_0 del GPIO_X
 
-if(EXTI->PR & EXTI_PR_PR1){
+	if(EXTI->PR & EXTI_PR_PR1){
 
-// Bajamos la bandera correspondiente
+	// Bajamos la bandera correspondiente
 
-EXTI->PR |= EXTI_PR_PR1;
+	EXTI->PR |= EXTI_PR_PR1;
 
 
-// llamamos al callback
+	// llamamos al callback
 
-// callback_ExtInt1();
+	// callback_ExtInt1();
 
-callback_extInt1();
+	callback_extInt1();
 
-}
+	}
 
 }
 
@@ -1399,22 +1392,22 @@ callback_extInt1();
 
 void EXTI2_IRQHandler(void){
 
-// Evaluamos si la interrupción que se lanzo corresponde al PIN_0 del GPIO_X
+	// Evaluamos si la interrupción que se lanzo corresponde al PIN_0 del GPIO_X
 
-if(EXTI->PR & EXTI_PR_PR2){
+	if(EXTI->PR & EXTI_PR_PR2){
 
-// Bajamos la bandera correspondiente
+	// Bajamos la bandera correspondiente
 
-EXTI->PR |= EXTI_PR_PR2;
+	EXTI->PR |= EXTI_PR_PR2;
 
 
-// llamamos al callback
+	// llamamos al callback
 
-// callback_ExtInt2();
+	// callback_ExtInt2();
 
-callback_extInt2();
+	callback_extInt2();
 
-}
+	}
 
 }
 
