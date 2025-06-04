@@ -56,18 +56,22 @@ void timerConfig(void);
 
 
 
-
+/* ------------ FUNCIONES DE LA CLASE ------------ */
 int main(void)
 {
     /* Loop forever */
-	while(1){
+	while(1)
+	{
 
 
 	}return 0;
 }
 
-/* ---------- Config Functions ----------- */
+/* ---------- CONFIG FUNCTIONS ----------- */
 void gpioConfig(void)
 {
 
 }
+
+/* ------------- INTERRUPT FUNCTIONS -------------- */
+
