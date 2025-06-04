@@ -73,6 +73,9 @@ void gpioConfig(void)
 	//Encoder
 	pinEncoderCLK.pGPIOx = GPIOB;
 	pinEncoderCLK.pinConfig.GPIO_PinNumber = PIN_5;
+	pinEncoderCLK.pinConfig.GPIO_PinMode = GPIO_MODE_IN;
+	pinEncoderCLK.pinConfig.GPIO_PinPuPdControl = GPIO_PUPDR_NOTHING;
+	gpio_Config(&pinEncoderCLK);
 
 
 }
