@@ -22,7 +22,7 @@ enum
 typedef struct{
 	GPIO_Handler_t *pGPIOHandler;	// Handler del pin GPIO que lanzara la interrupción
 	uint8_t			edgeType;		// Se selecciona si se desea un tipo de flanco subiendo o bajando
-}EXTI_;
+}EXTI_Config_t;
 
 void exti_Config(EXTI_Config_t *extiConfig);
 void callback_extInt0(void);
