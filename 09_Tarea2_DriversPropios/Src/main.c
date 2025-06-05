@@ -40,7 +40,7 @@ uint8_t decenas = 0;
 uint8_t	unidades = 0;
 
 fsm_states_t stateMachine = {0};
-e_PosibleStates state_machine_action(uint8_t event);
+
 
 GPIO_Handler_t pinH1Led2Board = {0};
 GPIO_Handler_t pinEncoderCLK = {0};
@@ -67,6 +67,7 @@ EXTI_Config_t pinExtiEncoderSW = {0};
 
 
 /* ------------------ HEADERS FOR PRIVATE FUNCTIONS ------------- */
+e_PosibleStates state_machine_action(uint8_t event);
 void gpioConfig(void);
 void extiConfig(void);
 void timerConfig(void);
@@ -92,6 +93,42 @@ int main(void)
 
 	}return 0;
 }
+
+// maquina de estados
+e_PosibleStates state_machine_action(uint8_t event)
+{
+	switch (stateMachine.state){
+	case IDLE:
+	{
+
+	}
+	return stateMachine.state;
+
+	case ROTACION:
+	{
+
+	}
+	return stateMachine.state;
+
+	case BOTON_SW:
+	{
+
+	}
+	return stateMachine.state;
+
+	default:
+		{
+		stateMachine.state = IDLE;
+		return stateMachine.state;
+		}
+
+	}
+}
+
+
+
+
+
 
 /* ------------------- CONFIG FUNCTIONS ----------- */
 void gpioConfig(void)

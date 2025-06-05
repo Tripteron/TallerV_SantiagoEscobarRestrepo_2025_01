@@ -19,7 +19,6 @@ typedef enum
 
 typedef struct
 {
-	uint32_t accessCounter;
 	e_PosibleStates state;
 
 } fsm_states_t;
