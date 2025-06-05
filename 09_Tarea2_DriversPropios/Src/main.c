@@ -23,6 +23,7 @@
 #include "exti_driver_hal.h"
 #include "timer_driver_hal.h"
 #include "stm32f4xx.h"
+#include <maquina_estados_hal.h>
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
 

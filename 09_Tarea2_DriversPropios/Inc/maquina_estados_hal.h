@@ -9,7 +9,7 @@
 #define MAQUINA_ESTADOS_HAL_H_
 
 #include <stdint.h>
-
+#include "stm32f4xx.h"
 typedef enum
 {
 	IDLE,
