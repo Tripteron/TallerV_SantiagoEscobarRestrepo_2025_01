@@ -12,14 +12,19 @@
 
 typedef enum
 {
-
+	IDLE,
+	ROTACION,
+	BOTON_SW,
 } e_PosibleStates;
 
 typedef struct
 {
+	uint32_t accessCounter;
+	e_PosibleStates;
 
 } fsm_states_t;
 
+extern void configMagic(void);
 
 
 #endif /* MAQUINA_ESTADOS_HAL_H_ */
