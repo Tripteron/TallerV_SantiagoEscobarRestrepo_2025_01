@@ -29,14 +29,12 @@
 volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderCLKextiFLAG = 0;
 volatile uint8_t encoderSWextiFLAG = 0;
-uint16_t contador = 0;
 
+uint16_t contador = 0;
 uint8_t miles = 0;
 uint8_t centenas = 0;
 uint8_t decenas = 0;
 uint8_t	unidades = 0;
-
-
 
 GPIO_Handler_t pinH1Led2Board = {0};
 GPIO_Handler_t pinEncoderCLK = {0};
