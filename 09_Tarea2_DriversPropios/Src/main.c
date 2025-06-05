@@ -27,11 +27,13 @@
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
 
-
 volatile uint8_t timer2FLAG = 0;
 volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderCLKextiFLAG = 0;
 volatile uint8_t encoderSWextiFLAG = 0;
+
+uint8_t valorCLK=0;
+uint8_t valorDT =0;
 
 uint8_t contadorDigito = 0;
 uint16_t contador = 0;
@@ -41,7 +43,6 @@ uint8_t decenas = 0;
 uint8_t	unidades = 0;
 
 fsm_states_t stateMachine = {0};
-
 
 GPIO_Handler_t pinH1Led2Board = {0};
 GPIO_Handler_t pinEncoderCLK = {0};
@@ -93,13 +94,25 @@ int main(void)
 		if(display7segmentFLAG)
 		{
 			update7SegmentDisplay();
-			display7segmentFLAG=0;
+			display7segmentFLAG = 0;
 		}
 
 		if(timer2FLAG)
 		{
 			gpio_TogglePin(&pinH1Led2Board);
-			timer2FLAG=0;
+			timer2FLAG = 0;
+		}
+		if(encoderCLKextiFLAG)
+		{
+			stateMachine.state = ROTACION;
+			state_machine_action(0);
+			encoderCLKextiFLAG = 0;
+		}
+		if(encoderSWextiFLAG)
+		{
+			stateMachine.state = BOTON_SW;
+			state_machine_action(0);
+			encoderSWextiFLAG = 0;
 		}
 
 	}return 0;
@@ -118,12 +131,35 @@ e_PosibleStates state_machine_action(uint8_t event)
 	case ROTACION:
 	{
 
+		if(valorCLK != valorDT)
+		{
+			if(contador == 4095)
+			{
+				contador = 0;
+			}
+			else
+			{
+				contador++;
+
+			}
+		}
+		else
+		{
+			if(contador == 0)
+				{
+					contador = 4095;
+				}
+			else
+				{
+				contador--;
+				}
+		}
 	}
 	return stateMachine.state;
 
 	case BOTON_SW:
 	{
-
+		contador = 0;
 	}
 	return stateMachine.state;
 
@@ -312,6 +348,10 @@ void extiConfig(void)
 
 void divideNumber(uint16_t contador)
 {
+	if(contador ==4096)
+	{
+		contador = 0;
+	}
 	miles = contador/1000;
 	centenas = contador/100 %10;
 	decenas = contador/10 %10;
@@ -508,6 +548,8 @@ void Timer3_Callback(void) // Para Display 7 segmentos
 //EXTI
 void callback_ExtInt5(void) // pin CLK (PB5)
 {
+	valorCLK = gpio_ReadPin(&pinEncoderCLK);
+	valorDT = gpio_ReadPin(&pinEncoderDT);
 	encoderCLKextiFLAG = 1;
 }
 
