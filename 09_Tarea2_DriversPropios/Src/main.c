@@ -33,6 +33,7 @@ volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderCLKextiFLAG = 0;
 volatile uint8_t encoderSWextiFLAG = 0;
 
+uint8_t contadorDigito = 0;
 uint16_t contador = 0;
 uint8_t miles = 0;
 uint8_t centenas = 0;
@@ -92,11 +93,13 @@ int main(void)
 		if(display7segmentFLAG)
 		{
 			update7SegmentDisplay();
+			display7segmentFLAG=0;
 		}
 
 		if(timer2FLAG)
 		{
 			gpio_TogglePin(&pinH1Led2Board);
+			timer2FLAG=0;
 		}
 
 	}return 0;
@@ -288,7 +291,7 @@ void timerConfig(void)
 
 	display7SegmentTime.pTIMx = TIM3;
 	display7SegmentTime.TIMx_Config.TIMx_Prescaler = 16000;
-	display7SegmentTime.TIMx_Config.TIMx_Period = 7;
+	display7SegmentTime.TIMx_Config.TIMx_Period = 2;
 	display7SegmentTime.TIMx_Config.TIMx_mode = TIMER_UP_COUNTER;
 	display7SegmentTime.TIMx_Config.TIMx_InterruptEnable = TIMER_INT_ENABLE;
 	timer_Config(&display7SegmentTime);
@@ -468,10 +471,11 @@ void mostrarMiles(void)
 void update7SegmentDisplay(void)
 {
 	divideNumber(contador);
-
-	uint8_t contadorLocal = 0;
-
-	switch(contadorLocal)
+	if(contadorDigito == 4)
+	{
+		contadorDigito = 0;
+	}
+	switch(contadorDigito)
 	{
 		case 0:
 			mostrarUnidades();
@@ -486,6 +490,7 @@ void update7SegmentDisplay(void)
 			mostrarMiles();
 		break;
 	}
+	contadorDigito++;
 }
 
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
