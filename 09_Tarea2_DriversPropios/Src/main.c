@@ -28,7 +28,7 @@
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
 
 
-
+volatile uint8_t timer2FLAG = 0;
 volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderCLKextiFLAG = 0;
 volatile uint8_t encoderSWextiFLAG = 0;
@@ -77,7 +77,7 @@ void mostrarUnidades(void);
 void mostrarDecenas(void);
 void mostrarCentenas(void);
 void mostrarMiles(void);
-
+void update7SegmentDisplay(void);
 
 
 /* ------------------ CLASS FUNCTIONS ------------ */
@@ -89,7 +89,15 @@ int main(void)
     /* Loop forever */
 	while(1)
 	{
+		if(display7segmentFLAG)
+		{
+			update7SegmentDisplay();
+		}
 
+		if(timer2FLAG)
+		{
+			gpio_TogglePin(&pinH1Led2Board);
+		}
 
 	}return 0;
 }
@@ -457,16 +465,39 @@ void mostrarMiles(void)
 	gpio_WritePin(&pinDigit1, RESET);
 }
 
+void update7SegmentDisplay(void)
+{
+	divideNumber(contador);
+
+	uint8_t contadorLocal = 0;
+
+	switch(contadorLocal)
+	{
+		case 0:
+			mostrarUnidades();
+		break;
+		case 1:
+			mostrarDecenas();
+		break;
+		case 2:
+			mostrarCentenas();
+		break;
+		case 3:
+			mostrarMiles();
+		break;
+	}
+}
+
 /* -------------------- INTERRUPT FUNCTIONS -------------- */
 //TIMERS
 void Timer2_Callback(void) // Para LED2 de Board (PinH1)
 {
-	gpio_TogglePin(&pinH1Led2Board);
+	timer2FLAG = 1;
 }
 
-void Timer3_Callback(void) // Para LED2 de Board (PinH1)
+void Timer3_Callback(void) // Para Display 7 segmentos
 {
-	display7segmentFLAG = 1;
+	display7segmentFLAG=1;
 }
 
 //EXTI
