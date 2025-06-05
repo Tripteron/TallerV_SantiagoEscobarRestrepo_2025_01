@@ -23,9 +23,11 @@
 #include "exti_driver_hal.h"
 #include "timer_driver_hal.h"
 #include "stm32f4xx.h"
-#include <maquina_estados_hal.h>
+#include "maquina_estados_hal.h"
 
 /* ---------------- DEFINICIÓN DE VARIABLES DE LAS CLASES ---------------- */
+
+
 
 volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderCLKextiFLAG = 0;
@@ -36,6 +38,9 @@ uint8_t miles = 0;
 uint8_t centenas = 0;
 uint8_t decenas = 0;
 uint8_t	unidades = 0;
+
+fsm_states_t stateMachine = {0};
+e_PosibleStates state_machine_action(uint8_t event);
 
 GPIO_Handler_t pinH1Led2Board = {0};
 GPIO_Handler_t pinEncoderCLK = {0};
