@@ -73,9 +73,6 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 e_PosibleStates state_machine_action(uint8_t event);
-void gpioConfig(void);
-void extiConfig(void);
-void timerConfig(void);
 void segmentoON(uint8_t number);
 void divideNumber(uint16_t contador);
 void mostrarUnidades(void);
@@ -83,6 +80,7 @@ void mostrarDecenas(void);
 void mostrarCentenas(void);
 void mostrarMiles(void);
 void update7SegmentDisplay(void);
+void InitProgram(void);
 
 /* USER CODE END PFP */
 
@@ -108,7 +106,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  InitProgram();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -123,6 +121,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  HAL_TIM_Base_Start_IT(&htim2);
+  HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -131,30 +131,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(display7segmentFLAG)
-	  		{
-	  			update7SegmentDisplay();
-	  			display7segmentFLAG = 0;
-	  		}
-
-	  		if(timer2FLAG)
-	  		{
-	  			HAL_GPIO_TogglePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin);
-	  			timer2FLAG = 0;
-	  		}
-	  		if(encoderCLKextiFLAG)
-	  		{
-	  			stateMachine.state = ROTACION;
-	  			state_machine_action(0);
-	  			encoderCLKextiFLAG = 0;
-	  		}
-	  		if(encoderSWextiFLAG)
-	  		{
-	  			stateMachine.state = BOTON_SW;
-	  			state_machine_action(0);
-	  			encoderSWextiFLAG = 0;
-	  		}
-
+	  stateMachine.state=IDLE;
+	  state_machine_action(0);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -348,14 +326,17 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, pinDigit2_Pin|pinDigit1_Pin|pinSegmentE_Pin|pinSegmentD_Pin
-                          |pinSegmentF_Pin|pinSegmentG_Pin|pinSegmentC_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, pinDigit2_Pin|pinDigit1_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, pinDigit3_Pin|pinDigit4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, pinSegmentE_Pin|pinSegmentD_Pin|pinSegmentF_Pin|pinSegmentG_Pin
+                          |pinSegmentC_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, pinDigit3_Pin|pinDigit4_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, GPIO_PIN_RESET);
@@ -424,19 +405,48 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+//Funcion para inicar la FSM en el estado base. El main.c con drivers propios no lo tiene
+void InitProgram(void)
+{
+	stateMachine.state=IDLE;
+}
+
+
 // maquina de estados
 e_PosibleStates state_machine_action(uint8_t event)
 {
 	switch (stateMachine.state){
 	case IDLE:
 	{
+		if(display7segmentFLAG)
+		{
+			update7SegmentDisplay();
+			display7segmentFLAG = 0;
+		}
 
+		if(timer2FLAG)
+		{
+			HAL_GPIO_TogglePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin);
+			timer2FLAG = 0;
+		}
+		if(encoderCLKextiFLAG)
+		{
+			stateMachine.state = ROTACION;
+			state_machine_action(0);
+			encoderCLKextiFLAG = 0;
+		}
+		if(encoderSWextiFLAG)
+		{
+			stateMachine.state = BOTON_SW;
+			state_machine_action(0);
+			encoderSWextiFLAG = 0;
+		}
 	}
 	return stateMachine.state;
 
 	case ROTACION:
 	{
-
+		stateMachine.state=IDLE;
 		if(valorCLK != valorDT)
 		{
 			if(contador == 4095)
@@ -465,6 +475,7 @@ e_PosibleStates state_machine_action(uint8_t event)
 
 	case BOTON_SW:
 	{
+		stateMachine.state=IDLE;
 		contador = 0;
 	}
 	return stateMachine.state;
