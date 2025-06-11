@@ -63,28 +63,6 @@ uint8_t decenas = 0;
 uint8_t	unidades = 0;
 
 fsm_states_t stateMachine = {0};
-
-GPIO_Handler_t pinH1Led2Board = {0};
-GPIO_Handler_t pinEncoderCLK = {0};
-GPIO_Handler_t pinEncoderDT = {0};
-GPIO_Handler_t pinEncoderSW = {0};
-GPIO_Handler_t pinSegmentA = {0};
-GPIO_Handler_t pinSegmentB = {0};
-GPIO_Handler_t pinSegmentC = {0};
-GPIO_Handler_t pinSegmentD = {0};
-GPIO_Handler_t pinSegmentE = {0};
-GPIO_Handler_t pinSegmentF = {0};
-GPIO_Handler_t pinSegmentG = {0};
-GPIO_Handler_t pinDigit1 = {0};
-GPIO_Handler_t pinDigit2 = {0};
-GPIO_Handler_t pinDigit3 = {0};
-GPIO_Handler_t pinDigit4 = {0};
-
-Timer_Handler_t display7SegmentTime = {0};
-Timer_Handler_t blinkLedPinH1 = {0};
-
-EXTI_Config_t pinExtiEncoderCLK = {0};
-EXTI_Config_t pinExtiEncoderSW = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -161,7 +139,7 @@ int main(void)
 
 	  		if(timer2FLAG)
 	  		{
-	  			gpio_TogglePin(&pinH1Led2Board);
+	  			HAL_GPIO_TogglePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin);
 	  			timer2FLAG = 0;
 	  		}
 	  		if(encoderCLKextiFLAG)
@@ -367,20 +345,20 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_HAL_GPIO_WritePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_HAL_GPIO_WritePin(GPIOC, pinDigit2_Pin|pinDigit1_Pin|pinSegmentE_Pin|pinSegmentD_Pin
+  HAL_GPIO_WritePin(GPIOC, pinDigit2_Pin|pinDigit1_Pin|pinSegmentE_Pin|pinSegmentD_Pin
                           |pinSegmentF_Pin|pinSegmentG_Pin|pinSegmentC_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_HAL_GPIO_WritePin(GPIOA, pinDigit3_Pin|pinDigit4_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, pinDigit3_Pin|pinDigit4_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : pinH1Led2Board_Pin */
   GPIO_InitStruct.Pin = pinH1Led2Board_Pin;
@@ -631,38 +609,39 @@ void segmentoON(uint8_t number)
 
 void mostrarUnidades(void)
 {
-	HAL_GPIO_WritePin(&pinDigit1, SET);
-	HAL_GPIO_WritePin(&pinDigit2, SET);
-	HAL_GPIO_WritePin(&pinDigit3, SET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin, SET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
 	segmentoON(unidades);
-	HAL_GPIO_WritePin(&pinDigit4, RESET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,RESET);
 }
 
 void mostrarDecenas(void)
 {
-	HAL_GPIO_WritePin(&pinDigit1, SET);
-	HAL_GPIO_WritePin(&pinDigit2, SET);
-	HAL_GPIO_WritePin(&pinDigit4, SET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
 	segmentoON(decenas);
-	HAL_GPIO_WritePin(&pinDigit3, RESET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,RESET);
 }
 
 void mostrarCentenas(void)
 {
-	HAL_GPIO_WritePin(&pinDigit1, SET);
-	HAL_GPIO_WritePin(&pinDigit4, SET);
-	HAL_GPIO_WritePin(&pinDigit3, SET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
 	segmentoON(centenas);
-	HAL_GPIO_WritePin(&pinDigit2, RESET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,RESET);
 }
 
 void mostrarMiles(void)
 {
-	HAL_GPIO_WritePin(&pinDigit4, SET);
-	HAL_GPIO_WritePin(&pinDigit2, SET);
-	HAL_GPIO_WritePin(&pinDigit3, SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
 	segmentoON(miles);
-	HAL_GPIO_WritePin(&pinDigit1, RESET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,RESET);
 }
 
 void update7SegmentDisplay(void)
