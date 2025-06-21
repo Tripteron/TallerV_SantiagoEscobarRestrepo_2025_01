@@ -114,7 +114,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   HAL_TIM_Base_Start_IT(&htim2);
-  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim4);
   /* USER CODE END Init */
 
   /* Configure the system clock */
