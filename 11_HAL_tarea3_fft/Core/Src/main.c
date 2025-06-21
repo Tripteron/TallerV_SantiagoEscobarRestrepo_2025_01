@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "maquina_estados_hal.h"
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,7 +52,22 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t timer2FLAG = 0;
+volatile uint8_t display7segmentFLAG = 0;
+volatile uint8_t encoderCLKextiFLAG = 0;
+volatile uint8_t encoderSWextiFLAG = 0;
 
+uint8_t valorCLK=0;
+uint8_t valorDT =0;
+
+uint8_t contadorDigito = 0;
+uint16_t contador = 0;
+uint8_t miles = 0;
+uint8_t centenas = 0;
+uint8_t decenas = 0;
+uint8_t	unidades = 0;
+
+fsm_states_t stateMachine = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,7 +80,15 @@ static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
-
+e_PosibleStates state_machine_action(uint8_t event);
+void segmentoON(uint8_t number);
+void divideNumber(uint16_t contador);
+void mostrarUnidades(void);
+void mostrarDecenas(void);
+void mostrarCentenas(void);
+void mostrarMiles(void);
+void update7SegmentDisplay(void);
+void InitProgram(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -89,7 +113,8 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_TIM_Base_Start_IT(&htim2);
+  HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -115,6 +140,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  stateMachine.state=IDLE;
+	  state_machine_action(0);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -504,7 +531,310 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+//Funcion para inicar la FSM en el estado base. El main.c con drivers propios no lo tiene
+void InitProgram(void)
+{
+	stateMachine.state=IDLE;
+}
 
+
+// maquina de estados
+e_PosibleStates state_machine_action(uint8_t event)
+{
+	switch (stateMachine.state){
+	case IDLE:
+	{
+		if(display7segmentFLAG)
+		{
+			update7SegmentDisplay();
+			display7segmentFLAG = 0;
+		}
+
+		if(timer2FLAG)
+		{
+			HAL_GPIO_TogglePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin);
+			timer2FLAG = 0;
+		}
+		if(encoderCLKextiFLAG)
+		{
+			stateMachine.state = ROTACION;
+			state_machine_action(0);
+			encoderCLKextiFLAG = 0;
+		}
+		if(encoderSWextiFLAG)
+		{
+			stateMachine.state = BOTON_SW;
+			state_machine_action(0);
+			encoderSWextiFLAG = 0;
+		}
+	}
+	return stateMachine.state;
+
+	case ROTACION:
+	{
+		stateMachine.state=IDLE;
+		if(valorCLK != valorDT)
+		{
+			if(contador == 4095)
+			{
+				contador = 0;
+			}
+			else
+			{
+				contador++;
+
+			}
+		}
+		else
+		{
+			if(contador == 0)
+				{
+					contador = 4095;
+				}
+			else
+				{
+				contador--;
+				}
+		}
+	}
+	return stateMachine.state;
+
+	case BOTON_SW:
+	{
+		stateMachine.state=IDLE;
+		contador = 0;
+	}
+	return stateMachine.state;
+
+	default:
+		{
+		stateMachine.state = IDLE;
+		return stateMachine.state;
+		}
+
+	}
+}
+
+// %%%%%%%%% FUNCIONES PRIVADAS USER %%%%%%%%%%%%
+
+void divideNumber(uint16_t contador)
+{
+	if(contador ==4096)
+	{
+		contador = 0;
+	}
+	miles = contador/1000;
+	centenas = contador/100 %10;
+	decenas = contador/10 %10;
+	unidades = contador%10;
+}
+
+
+
+void segmentoON(uint8_t number)
+{
+	switch(number)
+	{
+
+		case 0:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, RESET);
+		break;
+
+		case 1:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, RESET);
+		break;
+
+		case 2:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 3:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 4:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 5:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 6:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 7:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, RESET);
+		break;
+
+		case 8:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 9:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		default:
+		{
+			break;
+		}
+	}
+}
+
+void mostrarUnidades(void)
+{
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin, SET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
+	segmentoON(unidades);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,RESET);
+}
+
+void mostrarDecenas(void)
+{
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	segmentoON(decenas);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,RESET);
+}
+
+void mostrarCentenas(void)
+{
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
+	segmentoON(centenas);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,RESET);
+}
+
+void mostrarMiles(void)
+{
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
+	segmentoON(miles);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,RESET);
+}
+
+void update7SegmentDisplay(void)
+{
+	divideNumber(contador);
+	if(contadorDigito == 4)
+	{
+		contadorDigito = 0;
+	}
+	switch(contadorDigito)
+	{
+		case 0:
+			mostrarUnidades();
+		break;
+		case 1:
+			mostrarDecenas();
+		break;
+		case 2:
+			mostrarCentenas();
+		break;
+		case 3:
+			mostrarMiles();
+		break;
+	}
+	contadorDigito++;
+}
+
+
+// %%%%%%% TIMER - EXTI %%%%%%%%%%%
+//Timers
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Instance == TIM2)
+	{
+		timer2FLAG = 1;
+	}
+	else if(htim->Instance == TIM3)
+	{
+		display7segmentFLAG=1;
+	}
+}
+
+//EXTI
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == pinEncoderCLK_Pin)
+	{
+		valorCLK = HAL_GPIO_ReadPin(pinEncoderCLK_GPIO_Port, pinEncoderCLK_Pin);
+		valorDT = HAL_GPIO_ReadPin(pinEncoderDT_GPIO_Port, pinEncoderDT_Pin);
+		encoderCLKextiFLAG = 1;
+	}
+	else if(GPIO_Pin == pinEncoderSW_Pin)
+	{
+		encoderSWextiFLAG = 1;
+	}
+}
 /* USER CODE END 4 */
 
 /**
