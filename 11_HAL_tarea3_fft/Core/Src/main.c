@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "maquina_estados_hal.h"
 #include <stdint.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
