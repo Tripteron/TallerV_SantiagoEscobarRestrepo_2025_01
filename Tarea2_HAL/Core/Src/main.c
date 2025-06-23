@@ -122,7 +122,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   HAL_TIM_Base_Start_IT(&htim2);
-  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start(&htim3);
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -689,7 +689,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		timer2FLAG = 1;
 	}
-	else if(htim->Instance == TIM3)
+	else if(htim->Instance == TIM4)
 	{
 		display7segmentFLAG=1;
 	}

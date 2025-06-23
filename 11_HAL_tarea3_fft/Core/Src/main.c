@@ -23,7 +23,9 @@
 /* USER CODE BEGIN Includes */
 #include "maquina_estados_hal.h"
 #include <stdint.h>
-
+#include <stdlib.h>  // Para atoi()
+#include <string.h>  // Para strncmp()
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,7 +36,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define ADC_BUF_SIZE 1024
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,6 +55,11 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+
+#define UART_RX_BUF_SIZE 64
+volatile uint8_t uart_rx_flag = 0;
+uint8_t uart_rx_buffer[UART_RX_BUF_SIZE];
+uint8_t uart_rx_index = 0;
 
 volatile uint8_t timer2FLAG = 0;
 volatile uint8_t display7segmentFLAG = 0;
@@ -83,6 +89,9 @@ static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+
+
+void ProcessUARTCommand(char* command);
 e_PosibleStates state_machine_action(uint8_t event);
 void segmentoON(uint8_t number);
 void divideNumber(uint16_t contador);
@@ -118,6 +127,7 @@ int main(void)
   /* USER CODE BEGIN Init */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim4);
+  HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[0], 1); // Iniciar recepción UART
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -136,7 +146,10 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start(&htim3);
+  HAL_TIM_Base_Start_IT(&htim2);
+  HAL_TIM_Base_Start_IT(&htim4);
+  HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[0], 1); // Iniciar recepción UART
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -455,14 +468,17 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, green_rgb_Pin|pinSegmentE_Pin|pinSegmentD_Pin|pinSegmentF_Pin
+                          |pinSegmentG_Pin|pinSegmentC_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, pinDigit2_Pin|pinDigit1_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, pinSegmentA_Pin|red_rgb_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, pinSegmentE_Pin|pinSegmentD_Pin|pinSegmentF_Pin|pinSegmentG_Pin
-                          |pinSegmentC_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(blue_rgb_GPIO_Port, blue_rgb_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, pinDigit3_Pin|pinDigit4_Pin, GPIO_PIN_SET);
@@ -477,10 +493,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(pinH1Led2Board_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : pinDigit2_Pin pinDigit1_Pin pinSegmentE_Pin pinSegmentD_Pin
-                           pinSegmentF_Pin pinSegmentG_Pin pinSegmentC_Pin */
-  GPIO_InitStruct.Pin = pinDigit2_Pin|pinDigit1_Pin|pinSegmentE_Pin|pinSegmentD_Pin
-                          |pinSegmentF_Pin|pinSegmentG_Pin|pinSegmentC_Pin;
+  /*Configure GPIO pins : green_rgb_Pin pinDigit2_Pin pinDigit1_Pin pinSegmentE_Pin
+                           pinSegmentD_Pin pinSegmentF_Pin pinSegmentG_Pin pinSegmentC_Pin */
+  GPIO_InitStruct.Pin = green_rgb_Pin|pinDigit2_Pin|pinDigit1_Pin|pinSegmentE_Pin
+                          |pinSegmentD_Pin|pinSegmentF_Pin|pinSegmentG_Pin|pinSegmentC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -492,12 +508,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(pinEncoderDT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : pinSegmentA_Pin */
-  GPIO_InitStruct.Pin = pinSegmentA_Pin;
+  /*Configure GPIO pins : pinSegmentA_Pin red_rgb_Pin */
+  GPIO_InitStruct.Pin = pinSegmentA_Pin|red_rgb_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(pinSegmentA_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : pinEncoderSW_Pin */
   GPIO_InitStruct.Pin = pinEncoderSW_Pin;
@@ -505,8 +521,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(pinEncoderSW_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : pinDigit3_Pin pinDigit4_Pin */
-  GPIO_InitStruct.Pin = pinDigit3_Pin|pinDigit4_Pin;
+  /*Configure GPIO pins : blue_rgb_Pin pinDigit3_Pin pinDigit4_Pin */
+  GPIO_InitStruct.Pin = blue_rgb_Pin|pinDigit3_Pin|pinDigit4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -547,6 +563,13 @@ e_PosibleStates state_machine_action(uint8_t event)
 	switch (stateMachine.state){
 	case IDLE:
 	{
+	    if (uart_rx_flag) {
+	      uart_rx_buffer[uart_rx_index] = '\0'; // Terminar cadena
+	      ProcessUARTCommand((char*)uart_rx_buffer);
+	      uart_rx_index = 0;
+	      uart_rx_flag = 0;
+	      HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
+	    }
 		if(display7segmentFLAG)
 		{
 			update7SegmentDisplay();
@@ -809,6 +832,68 @@ void update7SegmentDisplay(void)
 	contadorDigito++;
 }
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART2) {
+    if (uart_rx_buffer[uart_rx_index] == '\n' || uart_rx_index >= UART_RX_BUF_SIZE - 1) {
+      uart_rx_flag = 1;
+    } else {
+      uart_rx_index++;
+      HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
+    }
+  }
+}
+
+void ProcessUARTCommand(char* command)
+{
+	  // Comando para cambiar frecuencia del LED
+	  if (strncmp(command, "FREQ=", 5) == 0) {
+	    int freq = atoi(command + 5);  // Convertir valor después del '='
+
+	    if (freq >= 1 && freq <= 100) {  // Rango válido 1-100 Hz
+	      // Calcular nuevo período (TIM2 clock = 16MHz / 16000 = 1KHz)
+	      uint32_t new_period = (1000 / freq) - 1;
+
+	      // Actualizar configuración del TIMER
+	      HAL_TIM_Base_Stop_IT(&htim2);
+	      __HAL_TIM_SET_AUTORELOAD(&htim2, new_period);
+	      __HAL_TIM_SET_COUNTER(&htim2, 0);
+	      HAL_TIM_Base_Start_IT(&htim2);
+
+	      // Confirmación por UART
+	      char response[50];
+	      int len = snprintf(response, sizeof(response), "OK:FREQ=%dHz\r\n", freq);
+	      HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
+	    }
+	    else {
+	      const char* error_msg = "ERROR:Frecuencia invalida (1-100Hz)\r\n";
+	      HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+	    }
+	  }
+	  if (strncmp(command, "RGB=", 4) == 0) {
+	     int r, g, b;
+	     if (sscanf(command + 4, "%d,%d,%d", &r, &g, &b) == 3) {
+	       // Validar valores
+	       r = (r != 0) ? 1 : 0;
+	       g = (g != 0) ? 1 : 0;
+	       b = (b != 0) ? 1 : 0;
+
+	       // Controlar LEDs
+	       HAL_GPIO_WritePin(red_rgb_GPIO_Port, red_rgb_Pin, r ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	       HAL_GPIO_WritePin(green_rgb_GPIO_Port, green_rgb_Pin, g ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	       HAL_GPIO_WritePin(blue_rgb_GPIO_Port, blue_rgb_Pin, b ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+	       // Confirmación
+	       char response[32];
+	       int len = snprintf(response, sizeof(response), "OK:RGB=%d,%d,%d\r\n", r, g, b);
+	       HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
+	     } else {
+	       const char* error_msg = "ERROR:Formato RGB invalido. Usar RGB=r,g,b\r\n";
+	       HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+	     }
+	   }
+}
+
 
 // %%%%%%% TIMER - EXTI %%%%%%%%%%%
 //Timers
@@ -818,7 +903,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		timer2FLAG = 1;
 	}
-	else if(htim->Instance == TIM3)
+	else if(htim->Instance == TIM4)
 	{
 		display7segmentFLAG=1;
 	}
