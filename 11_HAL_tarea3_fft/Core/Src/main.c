@@ -30,7 +30,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+// Configuración de muestreo
+typedef enum {
+    FS_44100 = 0,
+    FS_48000,
+    FS_96000,
+    FS_128000
+} sample_rate_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -56,6 +62,11 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 
+
+volatile sample_rate_t current_sample_rate = FS_48000;  // Valor por defecto
+volatile uint16_t fft_size = 1024;                     // Tamaño FFT por defecto
+
+static uint16_t adc_buffer[2048];  // Máximo tamaño necesario
 #define UART_RX_BUF_SIZE 64
 volatile uint8_t uart_rx_flag = 0;
 uint8_t uart_rx_buffer[UART_RX_BUF_SIZE];
@@ -88,9 +99,13 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
+
+
 /* USER CODE BEGIN PFP */
-
-
+void comandoFrecuenciaMuestreo(char* command);
+void comandoRGB(char* command);
+void comandoLED(char* command);
+void configure_sample_timer(sample_rate_t sample_rate);
 void ProcessUARTCommand(char* command);
 e_PosibleStates state_machine_action(uint8_t event);
 void segmentoON(uint8_t number);
@@ -150,6 +165,9 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[0], 1); // Iniciar recepción UART
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, fft_size);
+  configure_sample_timer(current_sample_rate);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -832,66 +850,144 @@ void update7SegmentDisplay(void)
 	contadorDigito++;
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  if (huart->Instance == USART2) {
-    if (uart_rx_buffer[uart_rx_index] == '\n' || uart_rx_index >= UART_RX_BUF_SIZE - 1) {
-      uart_rx_flag = 1;
-    } else {
-      uart_rx_index++;
-      HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
+
+void configure_sample_timer(sample_rate_t sample_rate) {
+    // Detener el timer y ADC antes de cambiar
+    HAL_TIM_Base_Stop(&htim3);
+    HAL_ADC_Stop_DMA(&hadc1);
+
+    // Configurar TIM3 según la frecuencia seleccionada
+    switch(sample_rate) {
+        case FS_44100:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 363);  // 16MHz / 44100 ≈ 363
+            break;
+        case FS_48000:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 333);  // 16MHz / 48000 ≈ 333
+            break;
+        case FS_96000:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 167);  // 16MHz / 96000 ≈ 167
+            break;
+        case FS_128000:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 125);  // 16MHz / 128000 = 125
+            break;
     }
-  }
+
+    // Reiniciar contador y periféricos
+    __HAL_TIM_SET_COUNTER(&htim3, 0);
+    HAL_TIM_Base_Start(&htim3);
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, fft_size);
 }
 
+void comandoLED(char* command)
+{
+    int freq = atoi(command + 5);  // Convertir valor después del '='
+
+    if (freq >= 1 && freq <= 100) {  // Rango válido 1-100 Hz
+      // Calcular nuevo período (TIM2 clock = 16MHz / 16000 = 1KHz)
+      uint32_t new_period = (1000 / freq) - 1;
+
+      // Actualizar configuración del TIMER
+      HAL_TIM_Base_Stop_IT(&htim2);
+      __HAL_TIM_SET_AUTORELOAD(&htim2, new_period);
+      __HAL_TIM_SET_COUNTER(&htim2, 0);
+      HAL_TIM_Base_Start_IT(&htim2);
+
+      // Confirmación por UART
+      char response[50];
+      int len = snprintf(response, sizeof(response), "OK:FREQ=%dHz\r\n", freq);
+      HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
+    }
+    else {
+      const char* error_msg = "ERROR:Frecuencia invalida (1-100Hz)\r\n";
+      HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+    }
+
+}
+
+void comandoRGB(char* command)
+{
+
+    int r, g, b;
+    if (sscanf(command + 4, "%d,%d,%d", &r, &g, &b) == 3) {
+      // Validar valores
+      r = (r != 0) ? 1 : 0;
+      g = (g != 0) ? 1 : 0;
+      b = (b != 0) ? 1 : 0;
+
+      // Controlar LEDs
+      HAL_GPIO_WritePin(red_rgb_GPIO_Port, red_rgb_Pin, r ? GPIO_PIN_SET : GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(green_rgb_GPIO_Port, green_rgb_Pin, g ? GPIO_PIN_SET : GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(blue_rgb_GPIO_Port, blue_rgb_Pin, b ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+      // Confirmación
+      char response[32];
+      int len = snprintf(response, sizeof(response), "OK:RGB=%d,%d,%d\r\n", r, g, b);
+      HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
+    } else {
+      const char* error_msg = "ERROR:Formato RGB invalido. Usar RGB=r,g,b\r\n";
+      HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+    }
+
+}
+
+void comandoFrecuenciaMuestreo(char* command)
+{
+
+    char* params = command + 12;
+    char* rate_str = strtok(params, ",");
+    char* size_str = strtok(NULL, ",");
+
+    // Procesar frecuencia
+    sample_rate_t new_rate = current_sample_rate;
+    if (rate_str) {
+        if (strcmp(rate_str, "44100") == 0) new_rate = FS_44100;
+        else if (strcmp(rate_str, "48000") == 0) new_rate = FS_48000;
+        else if (strcmp(rate_str, "96000") == 0) new_rate = FS_96000;
+        else if (strcmp(rate_str, "128000") == 0) new_rate = FS_128000;
+    }
+
+    // Procesar tamaño FFT
+    uint16_t new_size = fft_size;
+    if (size_str) {
+        int size_val = atoi(size_str);
+        if (size_val == 1024 || size_val == 2048) {
+            new_size = size_val;
+        }
+    }
+
+    // Aplicar cambios si son diferentes
+    if (new_rate != current_sample_rate || new_size != fft_size) {
+        current_sample_rate = new_rate;
+        fft_size = new_size;
+        configure_sample_timer(current_sample_rate);
+    }
+
+    // Confirmar configuración
+    const char* rate_names[] = {"44.1KHz", "48KHz", "96KHz", "128KHz"};
+    char response[64];
+    snprintf(response, sizeof(response), "OK:SAMPLE_RATE=%s,FFT_SIZE=%d\r\n",
+            rate_names[current_sample_rate], fft_size);
+    HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 100);
+}
 void ProcessUARTCommand(char* command)
 {
 	  // Comando para cambiar frecuencia del LED
 	  if (strncmp(command, "FREQ=", 5) == 0) {
-	    int freq = atoi(command + 5);  // Convertir valor después del '='
-
-	    if (freq >= 1 && freq <= 100) {  // Rango válido 1-100 Hz
-	      // Calcular nuevo período (TIM2 clock = 16MHz / 16000 = 1KHz)
-	      uint32_t new_period = (1000 / freq) - 1;
-
-	      // Actualizar configuración del TIMER
-	      HAL_TIM_Base_Stop_IT(&htim2);
-	      __HAL_TIM_SET_AUTORELOAD(&htim2, new_period);
-	      __HAL_TIM_SET_COUNTER(&htim2, 0);
-	      HAL_TIM_Base_Start_IT(&htim2);
-
-	      // Confirmación por UART
-	      char response[50];
-	      int len = snprintf(response, sizeof(response), "OK:FREQ=%dHz\r\n", freq);
-	      HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
-	    }
-	    else {
-	      const char* error_msg = "ERROR:Frecuencia invalida (1-100Hz)\r\n";
-	      HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
-	    }
+		  comandoLED(command);
 	  }
 	  if (strncmp(command, "RGB=", 4) == 0) {
-	     int r, g, b;
-	     if (sscanf(command + 4, "%d,%d,%d", &r, &g, &b) == 3) {
-	       // Validar valores
-	       r = (r != 0) ? 1 : 0;
-	       g = (g != 0) ? 1 : 0;
-	       b = (b != 0) ? 1 : 0;
+		  comandoRGB(command);
+	  }
 
-	       // Controlar LEDs
-	       HAL_GPIO_WritePin(red_rgb_GPIO_Port, red_rgb_Pin, r ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	       HAL_GPIO_WritePin(green_rgb_GPIO_Port, green_rgb_Pin, g ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	       HAL_GPIO_WritePin(blue_rgb_GPIO_Port, blue_rgb_Pin, b ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-	       // Confirmación
-	       char response[32];
-	       int len = snprintf(response, sizeof(response), "OK:RGB=%d,%d,%d\r\n", r, g, b);
-	       HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
-	     } else {
-	       const char* error_msg = "ERROR:Formato RGB invalido. Usar RGB=r,g,b\r\n";
-	       HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
-	     }
-	   }
+	  //Comando cambio de muestreo
+	  if (strncmp(command, "SAMPLE_RATE=", 12) == 0) {
+		  comandoFrecuenciaMuestreo(command);
+	    }
+	  //FIN COMANDO CAMBIAR MUESTREO
 }
 
 
@@ -922,6 +1018,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	{
 		encoderSWextiFLAG = 1;
 	}
+}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART2) {
+    if (uart_rx_buffer[uart_rx_index] == '\n' || uart_rx_index >= UART_RX_BUF_SIZE - 1) {
+      uart_rx_flag = 1;
+    } else {
+      uart_rx_index++;
+      HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
+    }
+  }
 }
 /* USER CODE END 4 */
 
