@@ -33,6 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define ADC_BUF_SIZE 1024
 
 /* USER CODE END PD */
 
@@ -53,6 +54,7 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+
 volatile uint8_t timer2FLAG = 0;
 volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderCLKextiFLAG = 0;
