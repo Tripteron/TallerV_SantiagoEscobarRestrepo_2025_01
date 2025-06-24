@@ -18,12 +18,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-// FFT
-#include "arm_math.h"
-#include "arm_const_structs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+// FFT
+#include "arm_math.h"
+#include <math.h>  // Para funciones sqrtf, powf, etc.
+
+#include "arm_const_structs.h"
 #include "maquina_estados_hal.h"
 #include <stdint.h>
 #include <stdlib.h>  // Para atoi()
@@ -44,6 +46,7 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define UART_RX_BUF_SIZE 64
 #define FFT_SIZE_MAX 2048
 #define ADC_BUF_SIZE 1024
 #define ADC_TX_BLOCK_SIZE 64   // Para comandoPrintADC
@@ -68,6 +71,9 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 
+
+volatile uint8_t flag_adc_ready = 0;
+
 arm_rfft_fast_instance_f32 fftInstance;
 float32_t fft_input[FFT_SIZE_MAX];   // Entrada para la FFT (real)
 float32_t fft_output[FFT_SIZE_MAX];  // Salida de la FFT (compleja: real, imag, ...)
@@ -80,7 +86,6 @@ volatile sample_rate_t current_sample_rate = FS_48000;  // Valor por defecto
 volatile uint16_t fft_size = 1024;                     // Tamaño FFT por defecto
 
 static uint16_t adc_buffer[2048];  // Máximo tamaño necesario
-#define UART_RX_BUF_SIZE 64
 volatile uint8_t uart_rx_flag = 0;
 uint8_t uart_rx_buffer[UART_RX_BUF_SIZE];
 uint8_t uart_rx_index = 0;
@@ -112,9 +117,9 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
-
-
 /* USER CODE BEGIN PFP */
+void comandoHelp(void);
+void comandoPrintFFTPeak(void);
 void compute_fft(void);
 void clean_command(char* cmd);
 void comandoPrintADC(void);
@@ -156,9 +161,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  HAL_TIM_Base_Start_IT(&htim2);
-  HAL_TIM_Base_Start_IT(&htim4);
-  HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[0], 1); // Iniciar recepción UART
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -177,6 +180,8 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  InitProgram();
+
   arm_rfft_fast_init_f32(&fftInstance, fft_size);
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start_IT(&htim2);
@@ -191,7 +196,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  stateMachine.state=IDLE;
 	  state_machine_action(0);
     /* USER CODE END WHILE */
 
@@ -357,11 +361,11 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 16000-1;
+  htim3.Init.Prescaler = 25;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 2-1;
+  htim3.Init.Period = 1200;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -371,7 +375,7 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
@@ -598,6 +602,10 @@ e_PosibleStates state_machine_action(uint8_t event)
 	switch (stateMachine.state){
 	case IDLE:
 	{
+		if(flag_adc_ready){
+	        compute_fft();
+	        flag_adc_ready = 0;
+		}
 	    if (uart_rx_flag) {
 	      uart_rx_buffer[uart_rx_index] = '\0'; // Terminar cadena
 	      ProcessUARTCommand((char*)uart_rx_buffer);
@@ -1030,6 +1038,8 @@ void comandoPrintADC(void) {
     const char* end_msg = "END_ADC_RAW\r\n";
     HAL_UART_Transmit(&huart2, (uint8_t*)end_msg, strlen(end_msg), 100);
 }
+
+
 void comandoPrintFFT(void) {
     if (!fft_ready) {
         const char* error_msg = "ERROR:FFT no calculada\r\n";
@@ -1069,6 +1079,85 @@ void comandoPrintFFT(void) {
     const char* end_msg = "END_FFT_SPECTRUM\r\n";
     HAL_UART_Transmit(&huart2, (uint8_t*)end_msg, strlen(end_msg), 100);
 }
+
+
+void comandoPrintFFTPeak(void) {
+    if (!fft_ready) {
+        const char* error_msg = "ERROR:FFT no calculada\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+        return;
+    }
+
+    // Calcular parámetros importantes
+    int total_bins = fft_size / 2;
+
+    // 1. Encontrar pico fundamental (excluyendo DC)
+    int peak_bin = 1; // Comenzar desde bin 1 (el 0 es DC)
+    float peak_mag = fft_mag[1];
+
+    for (int i = 2; i < total_bins; i++) {
+        if (fft_mag[i] > peak_mag) {
+            peak_mag = fft_mag[i];
+            peak_bin = i;
+        }
+    }
+
+    // 2. Calcular frecuencia del pico
+    float sample_rate_value;
+    switch(current_sample_rate) {
+        case FS_44100: sample_rate_value = 44100.0f; break;
+        case FS_48000: sample_rate_value = 48000.0f; break;
+        case FS_96000: sample_rate_value = 96000.0f; break;
+        case FS_128000: sample_rate_value = 128000.0f; break;
+        default: sample_rate_value = 48000.0f;
+    }
+
+    float bin_width = sample_rate_value / fft_size;
+    float peak_freq = peak_bin * bin_width;
+
+    // 3. Calcular potencia total
+    float total_power = 0.0f;
+    for (int i = 1; i < total_bins; i++) {
+        total_power += fft_mag[i] * fft_mag[i];
+    }
+
+    // 4. Componente DC
+    float dc_offset = fft_mag[0] / fft_size;
+
+    // 5. Calcular THD aproximado (suma de armónicos / fundamental)
+    float harmonic_power = 0.0f;
+    int fundamental = peak_bin;
+
+    // Considerar hasta 5 armónicos
+    for (int h = 2; h <= 5; h++) {
+        int harmonic_bin = fundamental * h;
+        if (harmonic_bin < total_bins) {
+            harmonic_power += fft_mag[harmonic_bin] * fft_mag[harmonic_bin];
+        }
+    }
+
+    float thd = (harmonic_power > 0) ? sqrtf(harmonic_power) / peak_mag : 0.0f;
+
+    // Preparar y enviar resultados
+    char response[256];
+    int len = snprintf(response, sizeof(response),
+        "FFT_PEAK_RESULTS:\r\n"
+        "Fundamental Frequency: %.2f Hz\r\n"
+        "Peak Amplitude: %.2f\r\n"
+        "Total Power: %.2f\r\n"
+        "DC Offset: %.2f\r\n"
+        "Approx THD: %.2f%%\r\n"
+        "END_FFT_PEAK\r\n",
+        peak_freq,
+        peak_mag,
+        total_power,
+        dc_offset,
+        thd * 100.0f);
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
+}
+
+
 void ProcessUARTCommand(char* command)
 {
     clean_command(command);  // Limpiar caracteres de nueva línea
@@ -1092,8 +1181,17 @@ void ProcessUARTCommand(char* command)
 	  else if (strcmp(command, "PRINT_FFT") == 0) {
 	        comandoPrintFFT();
 	    }
+	   else if (strcmp(command, "FFT_PEAK") == 0) {
+	        comandoPrintFFTPeak();
+	    }
+	    else if (strcmp(command, "HELP") == 0) {
+	        comandoHelp();
+	    }
+
 
 }
+
+
 void compute_fft(void) {
     // Convertir datos ADC a float
     for (int i = 0; i < fft_size; i++) {
@@ -1107,6 +1205,22 @@ void compute_fft(void) {
     arm_cmplx_mag_f32(fft_output, fft_mag, fft_size / 2);
 
     fft_ready = 1;
+}
+
+
+void comandoHelp(void) {
+    const char *help_message =
+        "Comandos disponibles:\r\n"
+        "FREQ=<frecuencia> - Cambia frecuencia LED (1-100 Hz)\r\n"
+        "RGB=<r,g,b> - Enciende/Apaga LEDs RGB (ej: RGB=1,0,1)\r\n"
+        "SAMPLE_RATE=<frecuencia>[,tamaño] - Configura muestreo (44100,48000,96000,128000) y tamaño FFT (1024,2048)\r\n"
+        "PRINT_ADC - Imprime valores ADC crudos\r\n"
+        "PRINT_FFT - Imprime espectro FFT completo\r\n"
+        "FFT_PEAK - Imprime parámetros clave de FFT (frecuencia, potencia, etc.)\r\n"
+        "HELP - Muestra esta ayuda\r\n"
+        "END_HELP\r\n";  // Marcador de fin
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)help_message, strlen(help_message), 100);
 }
 void clean_command(char* cmd) {
     char* p = cmd;
@@ -1122,7 +1236,7 @@ void clean_command(char* cmd) {
 // %%%%%%% CALLBACKS %%%%%%%%%%%
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
     if (hadc->Instance == ADC1) {
-        compute_fft();
+    	flag_adc_ready = 1;
     }
 }
 //Timers
