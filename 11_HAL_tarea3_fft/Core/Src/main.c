@@ -18,6 +18,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+// FFT
+#include "arm_math.h"
+#include "arm_const_structs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,7 +44,10 @@ typedef enum {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define FFT_SIZE_MAX 2048
 #define ADC_BUF_SIZE 1024
+#define ADC_TX_BLOCK_SIZE 64   // Para comandoPrintADC
+#define FFT_TX_BLOCK_SIZE 32   // Para comandoPrintFFT
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -61,6 +67,13 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+
+arm_rfft_fast_instance_f32 fftInstance;
+float32_t fft_input[FFT_SIZE_MAX];   // Entrada para la FFT (real)
+float32_t fft_output[FFT_SIZE_MAX];  // Salida de la FFT (compleja: real, imag, ...)
+float32_t fft_mag[FFT_SIZE_MAX / 2]; // Magnitudes (solo mitad significativa)
+
+volatile uint8_t fft_ready = 0;      // Bandera FFT calculada
 
 
 volatile sample_rate_t current_sample_rate = FS_48000;  // Valor por defecto
@@ -102,6 +115,9 @@ static void MX_TIM4_Init(void);
 
 
 /* USER CODE BEGIN PFP */
+void compute_fft(void);
+void clean_command(char* cmd);
+void comandoPrintADC(void);
 void comandoFrecuenciaMuestreo(char* command);
 void comandoRGB(char* command);
 void comandoLED(char* command);
@@ -161,6 +177,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  arm_rfft_fast_init_f32(&fftInstance, fft_size);
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim4);
@@ -874,6 +891,10 @@ void configure_sample_timer(sample_rate_t sample_rate) {
             __HAL_TIM_SET_PRESCALER(&htim3, 0);
             __HAL_TIM_SET_AUTORELOAD(&htim3, 125);  // 16MHz / 128000 = 125
             break;
+
+            // Reinicializar FFT con nuevo tamaño
+            arm_rfft_fast_init_f32(&fftInstance, fft_size);
+            fft_ready = 0;
     }
 
     // Reiniciar contador y periféricos
@@ -973,25 +994,137 @@ void comandoFrecuenciaMuestreo(char* command)
             rate_names[current_sample_rate], fft_size);
     HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 100);
 }
+void comandoPrintADC(void) {
+    HAL_ADC_Stop_DMA(&hadc1);
+
+    char header[64];
+    int len = snprintf(header, sizeof(header), "ADC_RAW:%d samples\r\n", fft_size);
+    HAL_UART_Transmit(&huart2, (uint8_t*)header, len, 100);
+
+    char tx_buf[ADC_TX_BLOCK_SIZE * 7]; // Usar define global
+
+    int samples_sent = 0;
+    while(samples_sent < fft_size) {
+        int block_size = (fft_size - samples_sent) > ADC_TX_BLOCK_SIZE ?
+                         ADC_TX_BLOCK_SIZE : (fft_size - samples_sent);
+        int buf_pos = 0;
+
+        // Formatear bloque de muestras
+        for(int i = 0; i < block_size; i++) {
+            int sample = adc_buffer[samples_sent + i];
+            buf_pos += snprintf(tx_buf + buf_pos, sizeof(tx_buf) - buf_pos, "%d\n", sample);
+        }
+
+        // Enviar bloque
+        HAL_UART_Transmit(&huart2, (uint8_t*)tx_buf, buf_pos, HAL_MAX_DELAY);
+        samples_sent += block_size;
+
+        // Pequeña pausa para permitir procesamiento de otras tareas
+        HAL_Delay(1);
+    }
+
+    // Reiniciar adquisición
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, fft_size);
+
+    // Confirmar finalización
+    const char* end_msg = "END_ADC_RAW\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)end_msg, strlen(end_msg), 100);
+}
+void comandoPrintFFT(void) {
+    if (!fft_ready) {
+        const char* error_msg = "ERROR:FFT no calculada\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+        return;
+    }
+    char header[64];
+    int len = snprintf(header, sizeof(header), "FFT_SPECTRUM:%d bins\r\n", fft_size / 2);
+    HAL_UART_Transmit(&huart2, (uint8_t*)header, len, 100);
+
+    char tx_buf[FFT_TX_BLOCK_SIZE * 16]; // Usar define global
+
+    int bins_sent = 0;
+    int total_bins = fft_size / 2;
+
+    while (bins_sent < total_bins) {
+        int block_size = (total_bins - bins_sent) > FFT_TX_BLOCK_SIZE ?
+                         FFT_TX_BLOCK_SIZE : (total_bins - bins_sent);
+        // ... resto del código ...
+        int buf_pos = 0;
+
+        // Formatear bloque de bins
+        for (int i = 0; i < block_size; i++) {
+            buf_pos += snprintf(tx_buf + buf_pos, sizeof(tx_buf) - buf_pos,
+                               "%.2f\n", fft_mag[bins_sent + i]);
+        }
+
+        // Enviar bloque
+        HAL_UART_Transmit(&huart2, (uint8_t*)tx_buf, buf_pos, HAL_MAX_DELAY);
+        bins_sent += block_size;
+
+        // Pequeña pausa
+        HAL_Delay(1);
+    }
+
+    // Confirmar finalización
+    const char* end_msg = "END_FFT_SPECTRUM\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)end_msg, strlen(end_msg), 100);
+}
 void ProcessUARTCommand(char* command)
 {
+    clean_command(command);  // Limpiar caracteres de nueva línea
+
 	  // Comando para cambiar frecuencia del LED
 	  if (strncmp(command, "FREQ=", 5) == 0) {
 		  comandoLED(command);
 	  }
-	  if (strncmp(command, "RGB=", 4) == 0) {
+	  else if (strncmp(command, "RGB=", 4) == 0) {
 		  comandoRGB(command);
 	  }
 
 	  //Comando cambio de muestreo
-	  if (strncmp(command, "SAMPLE_RATE=", 12) == 0) {
+	  else if (strncmp(command, "SAMPLE_RATE=", 12) == 0) {
 		  comandoFrecuenciaMuestreo(command);
 	    }
 	  //FIN COMANDO CAMBIAR MUESTREO
+	  else if (strcmp(command, "PRINT_ADC") == 0) {
+	        comandoPrintADC();
+	    }
+	  else if (strcmp(command, "PRINT_FFT") == 0) {
+	        comandoPrintFFT();
+	    }
+
+}
+void compute_fft(void) {
+    // Convertir datos ADC a float
+    for (int i = 0; i < fft_size; i++) {
+        fft_input[i] = (float32_t)adc_buffer[i];
+    }
+
+    // Calcular FFT
+    arm_rfft_fast_f32(&fftInstance, fft_input, fft_output, 0);
+
+    // Calcular magnitudes (solo primera mitad)
+    arm_cmplx_mag_f32(fft_output, fft_mag, fft_size / 2);
+
+    fft_ready = 1;
+}
+void clean_command(char* cmd) {
+    char* p = cmd;
+    while (*p) {
+        if (*p == '\r' || *p == '\n') {
+            *p = '\0';
+            break;
+        }
+        p++;
+    }
 }
 
-
-// %%%%%%% TIMER - EXTI %%%%%%%%%%%
+// %%%%%%% CALLBACKS %%%%%%%%%%%
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+    if (hadc->Instance == ADC1) {
+        compute_fft();
+    }
+}
 //Timers
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -1022,7 +1155,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART2) {
-    if (uart_rx_buffer[uart_rx_index] == '\n' || uart_rx_index >= UART_RX_BUF_SIZE - 1) {
+    if (uart_rx_buffer[uart_rx_index] == '\n' || uart_rx_index >= UART_RX_BUF_SIZE - 1 ||uart_rx_buffer[uart_rx_index] == '\r') {
       uart_rx_flag = 1;
     } else {
       uart_rx_index++;
