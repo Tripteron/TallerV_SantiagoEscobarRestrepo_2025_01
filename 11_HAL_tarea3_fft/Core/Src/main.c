@@ -118,6 +118,8 @@ static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+void set_sample_rate(sample_rate_t new_rate);
+void set_fft_size(uint16_t new_size);
 void comandoHelp(void);
 void comandoPrintFFTPeak(void);
 void compute_fft(void);
@@ -963,45 +965,45 @@ void comandoRGB(char* command)
 
 }
 
-void comandoFrecuenciaMuestreo(char* command)
-{
-
-    char* params = command + 12;
-    char* rate_str = strtok(params, ",");
-    char* size_str = strtok(NULL, ",");
-
-    // Procesar frecuencia
-    sample_rate_t new_rate = current_sample_rate;
-    if (rate_str) {
-        if (strcmp(rate_str, "44100") == 0) new_rate = FS_44100;
-        else if (strcmp(rate_str, "48000") == 0) new_rate = FS_48000;
-        else if (strcmp(rate_str, "96000") == 0) new_rate = FS_96000;
-        else if (strcmp(rate_str, "128000") == 0) new_rate = FS_128000;
-    }
-
-    // Procesar tamaño FFT
-    uint16_t new_size = fft_size;
-    if (size_str) {
-        int size_val = atoi(size_str);
-        if (size_val == 1024 || size_val == 2048) {
-            new_size = size_val;
-        }
-    }
-
-    // Aplicar cambios si son diferentes
-    if (new_rate != current_sample_rate || new_size != fft_size) {
-        current_sample_rate = new_rate;
-        fft_size = new_size;
-        configure_sample_timer(current_sample_rate);
-    }
-
-    // Confirmar configuración
-    const char* rate_names[] = {"44.1KHz", "48KHz", "96KHz", "128KHz"};
-    char response[64];
-    snprintf(response, sizeof(response), "OK:SAMPLE_RATE=%s,FFT_SIZE=%d\r\n",
-            rate_names[current_sample_rate], fft_size);
-    HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 100);
-}
+//void comandoFrecuenciaMuestreo(char* command)
+//{
+//
+//    char* params = command + 12;
+//    char* rate_str = strtok(params, ",");
+//    char* size_str = strtok(NULL, ",");
+//
+//    // Procesar frecuencia
+//    sample_rate_t new_rate = current_sample_rate;
+//    if (rate_str) {
+//        if (strcmp(rate_str, "44100") == 0) new_rate = FS_44100;
+//        else if (strcmp(rate_str, "48000") == 0) new_rate = FS_48000;
+//        else if (strcmp(rate_str, "96000") == 0) new_rate = FS_96000;
+//        else if (strcmp(rate_str, "128000") == 0) new_rate = FS_128000;
+//    }
+//
+//    // Procesar tamaño FFT
+//    uint16_t new_size = fft_size;
+//    if (size_str) {
+//        int size_val = atoi(size_str);
+//        if (size_val == 1024 || size_val == 2048) {
+//            new_size = size_val;
+//        }
+//    }
+//
+//    // Aplicar cambios si son diferentes
+//    if (new_rate != current_sample_rate || new_size != fft_size) {
+//        current_sample_rate = new_rate;
+//        fft_size = new_size;
+//        configure_sample_timer(current_sample_rate);
+//    }
+//
+//    // Confirmar configuración
+//    const char* rate_names[] = {"44.1KHz", "48KHz", "96KHz", "128KHz"};
+//    char response[64];
+//    snprintf(response, sizeof(response), "OK:SAMPLE_RATE=%s,FFT_SIZE=%d\r\n",
+//            rate_names[current_sample_rate], fft_size);
+//    HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 100);
+//}
 void comandoPrintADC(void) {
     HAL_ADC_Stop_DMA(&hadc1);
 
@@ -1156,7 +1158,79 @@ void comandoPrintFFTPeak(void) {
 
     HAL_UART_Transmit(&huart2, (uint8_t*)response, len, 100);
 }
+// Función para cambiar tamaño FFT
+void set_fft_size(uint16_t new_size) {
+    // Solo si es diferente
+    if (new_size == fft_size) return;
 
+    // Deshabilitar interrupciones durante el cambio
+    __disable_irq();
+
+    // Detener adquisición
+    HAL_ADC_Stop_DMA(&hadc1);
+
+    // Actualizar tamaño
+    fft_size = new_size;
+
+    // Reinicializar FFT
+    arm_rfft_fast_init_f32(&fftInstance, fft_size);
+
+    // Reiniciar ADC con nuevo tamaño
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, fft_size);
+
+    // Resetear estado de FFT
+    fft_ready = 0;
+
+    // Habilitar interrupciones
+    __enable_irq();
+}
+
+// Función para cambiar frecuencia de muestreo
+void set_sample_rate(sample_rate_t new_rate) {
+    // Solo si es diferente
+    if (new_rate == current_sample_rate) return;
+
+    // Deshabilitar interrupciones durante el cambio
+    __disable_irq();
+
+    // Detener periféricos
+    HAL_TIM_Base_Stop(&htim3);
+    HAL_ADC_Stop_DMA(&hadc1);
+
+    // Configurar timer según nueva frecuencia
+    switch(new_rate) {
+        case FS_44100:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 363);
+            break;
+        case FS_48000:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 333);
+            break;
+        case FS_96000:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 167);
+            break;
+        case FS_128000:
+            __HAL_TIM_SET_PRESCALER(&htim3, 0);
+            __HAL_TIM_SET_AUTORELOAD(&htim3, 125);
+            break;
+    }
+
+    // Actualizar variable global
+    current_sample_rate = new_rate;
+
+    // Reiniciar periféricos
+    __HAL_TIM_SET_COUNTER(&htim3, 0);
+    HAL_TIM_Base_Start(&htim3);
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, fft_size);
+
+    // Resetear estado de FFT
+    fft_ready = 0;
+
+    // Habilitar interrupciones
+    __enable_irq();
+}
 
 void ProcessUARTCommand(char* command)
 {
@@ -1169,12 +1243,58 @@ void ProcessUARTCommand(char* command)
 	  else if (strncmp(command, "RGB=", 4) == 0) {
 		  comandoRGB(command);
 	  }
+	  // Comando para cambiar SOLO tamaño FFT
+	      else if (strncmp(command, "SET_FFT_SIZE=", 13) == 0) {
+	          char* size_str = command + 13;
+	          int size_val = atoi(size_str);
 
+	          if (size_val == 1024 || size_val == 2048) {
+	              set_fft_size((uint16_t)size_val);
+	          }
+	          else {
+	              const char* error_msg = "ERROR:Tamaño FFT invalido (1024,2048)\r\n";
+	              HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+	              return;
+	          }
+
+	          // Confirmación
+	          char response[40];
+	          snprintf(response, sizeof(response), "OK:FFT_SIZE=%d\r\n", fft_size);
+	          HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 100);
+	      }
 	  //Comando cambio de muestreo
-	  else if (strncmp(command, "SAMPLE_RATE=", 12) == 0) {
-		  comandoFrecuenciaMuestreo(command);
-	    }
+//	  else if (strncmp(command, "SAMPLE_RATE=", 12) == 0) {
+//		  comandoFrecuenciaMuestreo(command);
+//	    }
 	  //FIN COMANDO CAMBIAR MUESTREO
+	  // Comando para cambiar SOLO frecuencia de muestreo
+	     else if (strncmp(command, "SET_SAMPLE_RATE=", 16) == 0) {
+	         char* rate_str = command + 16;
+
+	         if (strcmp(rate_str, "44100") == 0) {
+	             set_sample_rate(FS_44100);
+	         }
+	         else if (strcmp(rate_str, "48000") == 0) {
+	             set_sample_rate(FS_48000);
+	         }
+	         else if (strcmp(rate_str, "96000") == 0) {
+	             set_sample_rate(FS_96000);
+	         }
+	         else if (strcmp(rate_str, "128000") == 0) {
+	             set_sample_rate(FS_128000);
+	         }
+	         else {
+	             const char* error_msg = "ERROR:Frecuencia invalida (44100,48000,96000,128000)\r\n";
+	             HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+	             return;
+	         }
+
+	         // Confirmación
+	         const char* rate_names[] = {"44.1KHz", "48KHz", "96KHz", "128KHz"};
+	         char response[50];
+	         snprintf(response, sizeof(response), "OK:SAMPLE_RATE=%s\r\n", rate_names[current_sample_rate]);
+	         HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 100);
+	     }
 	  else if (strcmp(command, "PRINT_ADC") == 0) {
 	        comandoPrintADC();
 	    }
@@ -1213,8 +1333,8 @@ void comandoHelp(void) {
         "Comandos disponibles:\r\n"
         "FREQ=<frecuencia> - Cambia frecuencia LED (1-100 Hz)\r\n"
         "RGB=<r,g,b> - Enciende/Apaga LEDs RGB (ej: RGB=1,0,1)\r\n"
-        "SAMPLE_RATE=<frecuencia>[,tamaño] - Configura muestreo (44100,48000,96000,128000) y tamaño FFT (1024,2048)\r\n"
-        "PRINT_ADC - Imprime valores ADC crudos\r\n"
+		"SET_SAMPLE_RATE=<frecuencia> - Configura frecuencia de muestreo (44100,48000,96000,128000)\r\n"
+		"SET_FFT_SIZE=<tamaño> - Configura tamaño FFT (1024,2048)\r\n"        "PRINT_ADC - Imprime valores ADC crudos\r\n"
         "PRINT_FFT - Imprime espectro FFT completo\r\n"
         "FFT_PEAK - Imprime parámetros clave de FFT (frecuencia, potencia, etc.)\r\n"
         "HELP - Muestra esta ayuda\r\n"
