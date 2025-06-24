@@ -604,16 +604,15 @@ e_PosibleStates state_machine_action(uint8_t event)
 	switch (stateMachine.state){
 	case IDLE:
 	{
-		if(flag_adc_ready){
-	        compute_fft();
-	        flag_adc_ready = 0;
+		if(flag_adc_ready)
+		{
+			compute_fft();
+			flag_adc_ready = 0;
 		}
-	    if (uart_rx_flag) {
-	      uart_rx_buffer[uart_rx_index] = '\0'; // Terminar cadena
-	      ProcessUARTCommand((char*)uart_rx_buffer);
-	      uart_rx_index = 0;
-	      uart_rx_flag = 0;
-	      HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
+	    if(uart_rx_flag)
+	    {
+	    	stateMachine.state=PROCESANDO_COMANDO;
+	    	uart_rx_flag = 0;
 	    }
 		if(display7segmentFLAG)
 		{
@@ -638,6 +637,16 @@ e_PosibleStates state_machine_action(uint8_t event)
 			state_machine_action(0);
 			encoderSWextiFLAG = 0;
 		}
+	}
+	return stateMachine.state;
+
+	case PROCESANDO_COMANDO:
+	{
+	  stateMachine.state=IDLE;
+	  uart_rx_buffer[uart_rx_index] = '\0'; // Terminar cadena
+	  ProcessUARTCommand((char*)uart_rx_buffer);
+	  uart_rx_index = 0;
+	  HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
 	}
 	return stateMachine.state;
 

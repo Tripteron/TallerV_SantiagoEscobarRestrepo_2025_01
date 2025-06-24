@@ -13,6 +13,7 @@ typedef enum
 	IDLE,
 	ROTACION,
 	BOTON_SW,
+	PROCESANDO_COMANDO
 } e_PosibleStates;
 
 typedef struct
