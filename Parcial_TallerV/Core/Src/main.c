@@ -80,7 +80,7 @@ volatile uint8_t data_ready = 0;
 
 //7 segmentos
 uint8_t contadorDigito = 0;
-uint16_t contador = 0;
+volatile uint16_t display_value = 0;  // Valor a mostrar en el display (0-100)
 uint8_t miles = 0;
 uint8_t centenas = 0;
 uint8_t decenas = 0;
@@ -705,11 +705,14 @@ void divideNumber(uint16_t contador)
 }
 void update7SegmentDisplay(void)
 {
-	divideNumber(contador);
 	if(contadorDigito == 4)
 	{
 		contadorDigito = 0;
 	}
+	if(display_value>=100){
+		display_value = 99;
+	}
+	divideNumber(display_value);
 	switch(contadorDigito)
 	{
 		case 0:
@@ -913,49 +916,28 @@ e_PosibleStates state_machine_action(uint8_t event)
 				y_values[i] = (current_half[2 * i + 1]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
 			}
 
+
 			data_ready = 0;
 
 			// AQUÍ PROCESAR LOS DATOS (x_values y y_values)
 		}
+
 		if(display7segmentFLAG)
 		{
 			stateMachine.state = DISPLAY;
 			display7segmentFLAG = 0;
 		}
-//		if(encoderCLKextiFLAG)
-//		{
-//			stateMachine.state = ROTACION;
-//			state_machine_action(0);
-//			encoderCLKextiFLAG = 0;
-//		}
-//		if(encoderSWextiFLAG)
-//		{
-//			stateMachine.state = BOTON_SW;
-//			state_machine_action(0);
-//			encoderSWextiFLAG = 0;
-//		}
+
 	}
 	return stateMachine.state;
 
-//	case PROCESANDO_COMANDO:
-//	{
-//	  stateMachine.state=IDLE;
-//	  uart_rx_buffer[uart_rx_index] = '\0'; // Terminar cadena
-//	  ProcessUARTCommand((char*)uart_rx_buffer);
-//	  uart_rx_index = 0;
-//	  HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
-//	}
-//	return stateMachine.state;
-
-//	case BOTON_SW:
-//	{
-//		stateMachine.state=IDLE;
-////		contador = 0;
-//	}
-//	return stateMachine.state;
-
 	case DISPLAY:
 	{
+		uint32_t sumaTotal_ejeX = 0;
+		for(int i = 0; i < BUFFER_SIZE; i++) {
+			sumaTotal_ejeX += x_values[i];
+		}
+		display_value = 2*sumaTotal_ejeX / BUFFER_SIZE;  // Promedio entero
 		update7SegmentDisplay();
 		stateMachine.state=IDLE;
 	}
