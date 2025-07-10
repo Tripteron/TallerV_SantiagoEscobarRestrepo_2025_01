@@ -109,8 +109,7 @@ void mostrarUnidades(void);
 void mostrarDecenas(void);
 void mostrarCentenas(void);
 void mostrarMiles(void);
-void update7SegmentDisplay_XX(void);
-void update7SegmentDisplay_YY(void);
+void update7SegmentDisplay(void);
 void segmentoON(uint8_t number);
 void divideNumber(uint16_t contador);
 /* USER CODE END PFP */
@@ -700,7 +699,7 @@ void divideNumber(uint16_t contador)
 	decenas = contador/10 %10;
 	unidades = contador%10;
 }
-void update7SegmentDisplay_XX(void)
+void update7SegmentDisplay(void)
 {
 	if(contadorDigito_XX == 4)
 	{
@@ -712,7 +711,7 @@ void update7SegmentDisplay_XX(void)
 	if(display_value_YY>=100){
 		display_value_YY = 99;
 	}
-	divideNumber(display_value_XX + display_value_YY*100);
+	divideNumber(display_value_YY*100 + display_value_XX);
 	switch(contadorDigito_XX)
 	{
 		case 0:
@@ -730,27 +729,27 @@ void update7SegmentDisplay_XX(void)
 	}
 	contadorDigito_XX++;
 }
-void update7SegmentDisplay_YY(void)
-{
-	if(contadorDigito_YY == 2)
-	{
-		contadorDigito_YY = 0;
-	}
-	if(display_value_YY>=100){
-		display_value_YY = 99;
-	}
-	divideNumber(display_value_YY);
-	switch(contadorDigito_YY)
-	{
-		case 0:
-			mostrarCentenas();
-		break;
-		case 1:
-			mostrarMiles();
-		break;
-	}
-	contadorDigito_YY++;
-}
+//void update7SegmentDisplay_YY(void)
+//{
+//	if(contadorDigito_YY == 2)
+//	{
+//		contadorDigito_YY = 0;
+//	}
+//	if(display_value_YY>=100){
+//		display_value_YY = 99;
+//	}
+//	divideNumber(display_value_YY);
+//	switch(contadorDigito_YY)
+//	{
+//		case 0:
+//			mostrarCentenas();
+//		break;
+//		case 1:
+//			mostrarMiles();
+//		break;
+//	}
+//	contadorDigito_YY++;
+//}
 void segmentoON(uint8_t number)
 {
 	switch(number)
@@ -967,7 +966,7 @@ e_PosibleStates state_machine_action(uint8_t event)
 	case DISPLAY:
 	{
 
-		update7SegmentDisplay_XX();
+		update7SegmentDisplay();
 //		update7SegmentDisplay_YY();
 		stateMachine.state=IDLE;
 	}
