@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "maquina_estados_hal.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +46,7 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
+TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart2;
 
@@ -85,7 +86,7 @@ uint8_t centenas = 0;
 uint8_t decenas = 0;
 uint8_t	unidades = 0;
 
-
+fsm_states_t stateMachine = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,7 +98,9 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+e_PosibleStates state_machine_action(uint8_t event);
 void InitProgram(void);
 void mostrarUnidades(void);
 void mostrarDecenas(void);
@@ -151,7 +154,9 @@ int main(void)
   MX_TIM3_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start(&htim1);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_ping, 2 * BUFFER_SIZE);
@@ -194,36 +199,8 @@ int main(void)
 //	          // AQUÍ TU PROCESAMIENTO DE DATOS (ejes X e Y separados)
 //	          // Puedes implementar filtrado, calibración, etc.
 //	      }
-	   if(data_ready) {
-	        volatile uint16_t* current_half;
+	  state_machine_action(0);
 
-
-	        // Determinar qué sección procesar
-	        switch(current_buffer_section) {
-	            case BUFFER_PING_FIRST_HALF:
-	                current_half = adc_buffer_ping;
-	                break;
-	            case BUFFER_PING_SECOND_HALF:
-	                current_half = adc_buffer_ping + BUFFER_SIZE;
-	                break;
-	            case BUFFER_PONG_FIRST_HALF:
-	                current_half = adc_buffer_pong;
-	                break;
-	            case BUFFER_PONG_SECOND_HALF:
-	                current_half = adc_buffer_pong + BUFFER_SIZE;
-	                break;
-	        }
-
-	        // Separar ejes (2 muestras por posición)
-	        for(int i = 0; i < BUFFER_SIZE/2; i++) {
-	            x_values[i] = (current_half[2 * i]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
-	            y_values[i] = (current_half[2 * i + 1]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
-	        }
-
-	        data_ready = 0;
-
-	        // AQUÍ PROCESAR LOS DATOS (x_values y y_values)
-	    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -509,6 +486,51 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 16000-1;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 2-1;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -661,6 +683,7 @@ static void MX_GPIO_Init(void)
 //Funcion para inicar la FSM en el estado base. El main.c con drivers propios no lo tiene
 void InitProgram(void)
 {
+	stateMachine.state=IDLE;
 	current_buffer_section = BUFFER_PING_FIRST_HALF;
 }
 void segmentoXX_derecha(uint16_t ejeX_value){
@@ -852,7 +875,100 @@ void mostrarMiles(void)
 	segmentoON(miles);
 	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,RESET);
 }
+// maquina de estados
+e_PosibleStates state_machine_action(uint8_t event)
+{
+	switch (stateMachine.state){
+	case IDLE:
+	{
 
+//	    if(uart_rx_flag)
+//	    {
+//	    	stateMachine.state=PROCESANDO_COMANDO;
+//	    	uart_rx_flag = 0;
+//	    }
+	   if(data_ready) {
+			volatile uint16_t* current_half;
+
+
+			// Determinar qué sección procesar
+			switch(current_buffer_section) {
+				case BUFFER_PING_FIRST_HALF:
+					current_half = adc_buffer_ping;
+					break;
+				case BUFFER_PING_SECOND_HALF:
+					current_half = adc_buffer_ping + BUFFER_SIZE;
+					break;
+				case BUFFER_PONG_FIRST_HALF:
+					current_half = adc_buffer_pong;
+					break;
+				case BUFFER_PONG_SECOND_HALF:
+					current_half = adc_buffer_pong + BUFFER_SIZE;
+					break;
+			}
+
+			// Separar ejes (2 muestras por posición)
+			for(int i = 0; i < BUFFER_SIZE/2; i++) {
+				x_values[i] = (current_half[2 * i]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
+				y_values[i] = (current_half[2 * i + 1]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
+			}
+
+			data_ready = 0;
+
+			// AQUÍ PROCESAR LOS DATOS (x_values y y_values)
+		}
+		if(display7segmentFLAG)
+		{
+			stateMachine.state = DISPLAY;
+			display7segmentFLAG = 0;
+		}
+//		if(encoderCLKextiFLAG)
+//		{
+//			stateMachine.state = ROTACION;
+//			state_machine_action(0);
+//			encoderCLKextiFLAG = 0;
+//		}
+//		if(encoderSWextiFLAG)
+//		{
+//			stateMachine.state = BOTON_SW;
+//			state_machine_action(0);
+//			encoderSWextiFLAG = 0;
+//		}
+	}
+	return stateMachine.state;
+
+//	case PROCESANDO_COMANDO:
+//	{
+//	  stateMachine.state=IDLE;
+//	  uart_rx_buffer[uart_rx_index] = '\0'; // Terminar cadena
+//	  ProcessUARTCommand((char*)uart_rx_buffer);
+//	  uart_rx_index = 0;
+//	  HAL_UART_Receive_IT(&huart2, &uart_rx_buffer[uart_rx_index], 1);
+//	}
+//	return stateMachine.state;
+
+//	case BOTON_SW:
+//	{
+//		stateMachine.state=IDLE;
+////		contador = 0;
+//	}
+//	return stateMachine.state;
+
+	case DISPLAY:
+	{
+		update7SegmentDisplay();
+		stateMachine.state=IDLE;
+	}
+	return stateMachine.state;
+
+	default:
+		{
+		stateMachine.state = IDLE;
+		return stateMachine.state;
+		}
+
+	}
+}
 
 // %%%%%%%%% CALLBACK %%%%%%%%%%%%
 // Callback de media transferencia DMA
