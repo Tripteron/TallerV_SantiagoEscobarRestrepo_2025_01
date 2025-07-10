@@ -65,6 +65,17 @@ volatile uint8_t full_transfer_flag = 0;
 
 uint16_t x_values[BUFFER_SIZE];
 uint16_t y_values[BUFFER_SIZE];
+uint16_t offset = 0;
+
+// Control de buffers
+volatile enum {
+    BUFFER_PING_FIRST_HALF,
+    BUFFER_PING_SECOND_HALF,
+    BUFFER_PONG_FIRST_HALF,
+    BUFFER_PONG_SECOND_HALF
+} current_buffer_section = BUFFER_PING_FIRST_HALF;
+
+volatile uint8_t data_ready = 0;
 
 
 /* USER CODE END PV */
@@ -136,36 +147,66 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(half_transfer_flag || full_transfer_flag) {
-	          // Determinar qué buffer procesar
-	          volatile uint16_t* current_buffer;
+//	  if(half_transfer_flag || full_transfer_flag) {
+//	          // Determinar qué buffer procesar
+//	          volatile uint16_t* current_buffer;
+//
+//	          if(half_transfer_flag) {
+//	              current_buffer = ping_active ? adc_buffer_ping : adc_buffer_pong;
+//	          } else { // full_transfer_flag
+//	              current_buffer = ping_active ? adc_buffer_pong : adc_buffer_ping;
+//	          }
+//
+//	          // Procesar datos (ejemplo: separar ejes)
+//
+//
+//	          for(int i = 0; i < BUFFER_SIZE; i++) {
+//	              x_values[i] = current_buffer[2 * i];      // Posiciones pares: X
+//	              y_values[i] = current_buffer[2 * i + 1];  // Posiciones impares: Y
+//	          }
+//
+//	          // Resetear flags
+//	          half_transfer_flag = 0;
+//	          full_transfer_flag = 0;
+//
+//	          // Cambiar buffer activo si es transferencia completa
+//	          if(full_transfer_flag) {
+//	              ping_active = !ping_active;
+//	          }
+//
+//	          // AQUÍ TU PROCESAMIENTO DE DATOS (ejes X e Y separados)
+//	          // Puedes implementar filtrado, calibración, etc.
+//	      }
+	   if(data_ready) {
+	        volatile uint16_t* current_half;
 
-	          if(half_transfer_flag) {
-	              current_buffer = ping_active ? adc_buffer_ping : adc_buffer_pong;
-	          } else { // full_transfer_flag
-	              current_buffer = ping_active ? adc_buffer_pong : adc_buffer_ping;
-	          }
 
-	          // Procesar datos (ejemplo: separar ejes)
+	        // Determinar qué sección procesar
+	        switch(current_buffer_section) {
+	            case BUFFER_PING_FIRST_HALF:
+	                current_half = adc_buffer_ping;
+	                break;
+	            case BUFFER_PING_SECOND_HALF:
+	                current_half = adc_buffer_ping + BUFFER_SIZE;
+	                break;
+	            case BUFFER_PONG_FIRST_HALF:
+	                current_half = adc_buffer_pong;
+	                break;
+	            case BUFFER_PONG_SECOND_HALF:
+	                current_half = adc_buffer_pong + BUFFER_SIZE;
+	                break;
+	        }
 
+	        // Separar ejes (2 muestras por posición)
+	        for(int i = 0; i < BUFFER_SIZE/2; i++) {
+	            x_values[i] = (current_half[2 * i]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
+	            y_values[i] = (current_half[2 * i + 1]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
+	        }
 
-	          for(int i = 0; i < BUFFER_SIZE; i++) {
-	              x_values[i] = current_buffer[2 * i];      // Posiciones pares: X
-	              y_values[i] = current_buffer[2 * i + 1];  // Posiciones impares: Y
-	          }
+	        data_ready = 0;
 
-	          // Resetear flags
-	          half_transfer_flag = 0;
-	          full_transfer_flag = 0;
-
-	          // Cambiar buffer activo si es transferencia completa
-	          if(full_transfer_flag) {
-	              ping_active = !ping_active;
-	          }
-
-	          // AQUÍ TU PROCESAMIENTO DE DATOS (ejes X e Y separados)
-	          // Puedes implementar filtrado, calibración, etc.
-	      }
+	        // AQUÍ PROCESAR LOS DATOS (x_values y y_values)
+	    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -237,13 +278,13 @@ static void MX_ADC1_Init(void)
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ENABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 2;
   hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -256,6 +297,15 @@ static void MX_ADC1_Init(void)
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -594,22 +644,60 @@ static void MX_GPIO_Init(void)
 //Funcion para inicar la FSM en el estado base. El main.c con drivers propios no lo tiene
 void InitProgram(void)
 {
-	__NOP();
+	current_buffer_section = BUFFER_PING_FIRST_HALF;
 }
 
 
 
 // %%%%%%%%% FUNCIONES PRIVADAS USER %%%%%%%%%%%%
 // Callback de media transferencia DMA
+//void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
+//    half_transfer_flag = 1;
+//    full_transfer_flag = 0;
+//}
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
-    half_transfer_flag = 1;
-    full_transfer_flag = 0;
+    // Se llenó la primera mitad del buffer actual
+    switch(current_buffer_section) {
+        case BUFFER_PING_FIRST_HALF:
+            current_buffer_section = BUFFER_PING_SECOND_HALF;
+            break;
+        case BUFFER_PONG_FIRST_HALF:
+            current_buffer_section = BUFFER_PONG_SECOND_HALF;
+            break;
+        default:
+            // Manejo de error
+            break;
+    }
+    data_ready = 1;
 }
 
-// Callback de transferencia completa DMA
+//// Callback de transferencia completa DMA
+//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+//    full_transfer_flag = 1;
+//    half_transfer_flag = 0;
+//}
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
-    full_transfer_flag = 1;
-    half_transfer_flag = 0;
+    // Se llenó la segunda mitad del buffer actual + cambio de buffer
+    switch(current_buffer_section) {
+        case BUFFER_PING_SECOND_HALF:
+            // Cambiar a pong y actualizar DMA
+            HAL_ADC_Stop_DMA(&hadc1);
+            HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_pong, 2 * BUFFER_SIZE);
+            current_buffer_section = BUFFER_PONG_FIRST_HALF;
+            break;
+
+        case BUFFER_PONG_SECOND_HALF:
+            // Cambiar a ping y actualizar DMA
+            HAL_ADC_Stop_DMA(&hadc1);
+            HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_ping, 2 * BUFFER_SIZE);
+            current_buffer_section = BUFFER_PING_FIRST_HALF;
+            break;
+
+        default:
+            // Manejo de error
+            break;
+    }
+    data_ready = 1;
 }
 
 // %%%%%%% TIMER - EXTI %%%%%%%%%%%
