@@ -77,6 +77,14 @@ volatile enum {
 
 volatile uint8_t data_ready = 0;
 
+//7 segmentos
+uint8_t contadorDigito = 0;
+uint16_t contador = 0;
+uint8_t miles = 0;
+uint8_t centenas = 0;
+uint8_t decenas = 0;
+uint8_t	unidades = 0;
+
 
 /* USER CODE END PV */
 
@@ -91,6 +99,15 @@ static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void InitProgram(void);
+void mostrarUnidades(void);
+void mostrarDecenas(void);
+void mostrarCentenas(void);
+void mostrarMiles(void);
+void segmentoXX_derecha(uint16_t ejeX_value);
+void segmentoYY_Izquierda(uint16_t ejeY_value);
+void update7SegmentDisplay(void);
+void segmentoON(uint8_t number);
+void divideNumber(uint16_t contador);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -646,10 +663,198 @@ void InitProgram(void)
 {
 	current_buffer_section = BUFFER_PING_FIRST_HALF;
 }
+void segmentoXX_derecha(uint16_t ejeX_value){
+
+}
+void segmentoYY_Izquierda(uint16_t ejeY_value){
+
+}
+void divideNumber(uint16_t contador)
+{
+	if(contador ==4096)
+	{
+		contador = 0;
+	}
+	miles = contador/1000;
+	centenas = contador/100 %10;
+	decenas = contador/10 %10;
+	unidades = contador%10;
+}
+void update7SegmentDisplay(void)
+{
+	divideNumber(contador);
+	if(contadorDigito == 4)
+	{
+		contadorDigito = 0;
+	}
+	switch(contadorDigito)
+	{
+		case 0:
+			mostrarUnidades();
+		break;
+		case 1:
+			mostrarDecenas();
+		break;
+		case 2:
+			mostrarCentenas();
+		break;
+		case 3:
+			mostrarMiles();
+		break;
+	}
+	contadorDigito++;
+}
+void segmentoON(uint8_t number)
+{
+	switch(number)
+	{
+
+		case 0:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, RESET);
+		break;
+
+		case 1:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, RESET);
+		break;
+
+		case 2:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 3:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 4:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 5:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 6:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 7:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, RESET);
+		break;
+
+		case 8:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		case 9:
+			HAL_GPIO_WritePin(pinSegmentA_GPIO_Port, pinSegmentA_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentB_GPIO_Port, pinSegmentB_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentC_GPIO_Port, pinSegmentC_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentD_GPIO_Port, pinSegmentD_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentE_GPIO_Port, pinSegmentE_Pin, RESET);
+			HAL_GPIO_WritePin(pinSegmentF_GPIO_Port, pinSegmentF_Pin, SET);
+			HAL_GPIO_WritePin(pinSegmentG_GPIO_Port, pinSegmentG_Pin, SET);
+		break;
+
+		default:
+		{
+			break;
+		}
+	}
+}
+void mostrarUnidades(void)
+{
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin, SET);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
+	segmentoON(unidades);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,RESET);
+}
+
+void mostrarDecenas(void)
+{
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	segmentoON(decenas);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,RESET);
+}
+
+void mostrarCentenas(void)
+{
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
+	segmentoON(centenas);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,RESET);
+}
+
+void mostrarMiles(void)
+{
+	HAL_GPIO_WritePin(pinDigit4_GPIO_Port,pinDigit4_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit2_GPIO_Port,pinDigit2_Pin,SET);
+	HAL_GPIO_WritePin(pinDigit3_GPIO_Port,pinDigit3_Pin,SET);
+	segmentoON(miles);
+	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,RESET);
+}
 
 
-
-// %%%%%%%%% FUNCIONES PRIVADAS USER %%%%%%%%%%%%
+// %%%%%%%%% CALLBACK %%%%%%%%%%%%
 // Callback de media transferencia DMA
 //void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
 //    half_transfer_flag = 1;
