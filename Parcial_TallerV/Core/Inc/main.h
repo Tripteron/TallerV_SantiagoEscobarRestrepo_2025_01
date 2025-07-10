@@ -71,10 +71,10 @@ void Error_Handler(void);
 #define pinEncoderDT_GPIO_Port GPIOB
 #define pinSegmentA_Pin GPIO_PIN_12
 #define pinSegmentA_GPIO_Port GPIOB
-#define red_rgb_PWM_Pin GPIO_PIN_13
-#define red_rgb_PWM_GPIO_Port GPIOB
-#define green_rgb_PWM_Pin GPIO_PIN_14
+#define green_rgb_PWM_Pin GPIO_PIN_13
 #define green_rgb_PWM_GPIO_Port GPIOB
+#define red_rgb_PWM_Pin GPIO_PIN_14
+#define red_rgb_PWM_GPIO_Port GPIOB
 #define blue_rgb_PWM_Pin GPIO_PIN_15
 #define blue_rgb_PWM_GPIO_Port GPIOB
 #define pinDigit1_Pin GPIO_PIN_6

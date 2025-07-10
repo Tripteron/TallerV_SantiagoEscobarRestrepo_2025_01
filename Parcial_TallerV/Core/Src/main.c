@@ -22,6 +22,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "maquina_estados_hal.h"
+#include <stdint.h>
+#include <stdlib.h>  // Para atoi()
+#include <string.h>  // Para strncmp()
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,6 +36,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define BUFFER_SIZE 128  // Tamaño de cada buffer (ajustar según necesidades)
+#define UART_BUFFER_SIZE 64
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,9 +54,9 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
-volatile uint8_t timer2FLAG = 0;
 volatile uint8_t display7segmentFLAG = 0;
 volatile uint8_t encoderSWextiFLAG = 0;
 
@@ -90,6 +95,16 @@ uint8_t decenas = 0;
 uint8_t	unidades = 0;
 
 fsm_states_t stateMachine = {0};
+
+//UART
+volatile uint8_t uart_rx_buffer[UART_BUFFER_SIZE];
+volatile uint8_t uart_rx_len = 0;
+volatile uint8_t uart_cmd_ready = 0;
+
+// Valores PWM actuales (0-100%)
+volatile uint8_t pwm_red = 0;
+volatile uint8_t pwm_green = 0;
+volatile uint8_t pwm_blue = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -157,7 +172,9 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_DMA(&huart2, (uint8_t*)uart_rx_buffer, UART_BUFFER_SIZE);
   HAL_TIM_Base_Start_IT(&htim4);
+  HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start(&htim1);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_ping, 2 * BUFFER_SIZE);
@@ -572,8 +589,12 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
@@ -898,6 +919,43 @@ void mostrarMiles(void)
 	segmentoON(miles);
 	HAL_GPIO_WritePin(pinDigit1_GPIO_Port,pinDigit1_Pin,RESET);
 }
+
+//Funcion para procesar comandos
+void Process_Command(const char* cmd) {
+    // Formato esperado: "RxxxGxxxBxxx\n" (ej: "R100G050B000")
+    char *ptr;
+
+    // Buscar comando Rojo
+    ptr = strchr(cmd, 'R');
+    if(ptr) {
+        pwm_red = (uint8_t)atoi(ptr+1);
+        pwm_red = (pwm_red > 100) ? 100 : pwm_red;
+    }
+
+    // Buscar comando Verde
+    ptr = strchr(cmd, 'G');
+    if(ptr) {
+        pwm_green = (uint8_t)atoi(ptr+1);
+        pwm_green = (pwm_green > 100) ? 100 : pwm_green;
+    }
+
+    // Buscar comando Azul
+    ptr = strchr(cmd, 'B');
+    if(ptr) {
+        pwm_blue = (uint8_t)atoi(ptr+1);
+        pwm_blue = (pwm_blue > 100) ? 100 : pwm_blue;
+    }
+
+    // Actualizar PWM
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, (pwm_red * htim1.Init.Period) / 100);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, (pwm_green * htim1.Init.Period) / 100);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, (pwm_blue * htim1.Init.Period) / 100);
+
+    char response[32];
+    snprintf(response, 32, "SET: R%d G%d B%d\r\n", pwm_red, pwm_green, pwm_blue);
+    HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 10);
+}
+
 // maquina de estados
 e_PosibleStates state_machine_action(uint8_t event)
 {
@@ -905,12 +963,22 @@ e_PosibleStates state_machine_action(uint8_t event)
 	case IDLE:
 	{
 
-//	    if(uart_rx_flag)
-//	    {
-//	    	stateMachine.state=PROCESANDO_COMANDO;
-//	    	uart_rx_flag = 0;
-//	    }
-	   if(data_ready) {
+	    if(uart_cmd_ready)
+	    {
+	        // Convertir a string terminado en null
+	        char cmd_buffer[UART_BUFFER_SIZE + 1];
+	        memcpy(cmd_buffer, (const char*)uart_rx_buffer, uart_rx_len);
+	        cmd_buffer[uart_rx_len] = '\0';
+
+	        // Procesar comando
+	        Process_Command(cmd_buffer);
+
+	        // Resetear flag
+	        uart_cmd_ready = 0;
+	    }
+	    // ... (otras tareas)
+	   if(data_ready)
+	   {
 			volatile uint16_t* current_half;
 
 
@@ -982,11 +1050,23 @@ e_PosibleStates state_machine_action(uint8_t event)
 }
 
 // %%%%%%%%% CALLBACK %%%%%%%%%%%%
-// Callback de media transferencia DMA
-//void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
-//    half_transfer_flag = 1;
-//    full_transfer_flag = 0;
-//}
+//UART
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if(huart->Instance == USART2) {
+        // Buscar fin de comando (nueva línea)
+        for(uint8_t i = 0; i < UART_BUFFER_SIZE; i++) {
+            if(uart_rx_buffer[i] == '\n') {
+                uart_rx_len = i;
+                uart_cmd_ready = 1;
+                break;
+            }
+        }
+        // Reiniciar recepción DMA
+        HAL_UART_Receive_DMA(&huart2, (uint8_t*)uart_rx_buffer, UART_BUFFER_SIZE);
+    }
+}
+
+//ADC
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
     // Se llenó la primera mitad del buffer actual
     switch(current_buffer_section) {
@@ -1038,8 +1118,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM2)
 	{
-		timer2FLAG = 1;
-	}
+		HAL_GPIO_TogglePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin);	}
 	else if(htim->Instance == TIM4)
 	{
 		display7segmentFLAG=1;
