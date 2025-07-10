@@ -63,6 +63,8 @@ volatile uint8_t ping_active = 1;  // 1=Ping activo, 0=Pong activo
 volatile uint8_t half_transfer_flag = 0;
 volatile uint8_t full_transfer_flag = 0;
 
+uint16_t x_values[BUFFER_SIZE];
+uint16_t y_values[BUFFER_SIZE];
 
 
 /* USER CODE END PV */
@@ -77,7 +79,7 @@ static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-
+void InitProgram(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -122,7 +124,12 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim3);
+  HAL_TIM_Base_Start(&htim1);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_ping, 2 * BUFFER_SIZE);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -140,8 +147,7 @@ int main(void)
 	          }
 
 	          // Procesar datos (ejemplo: separar ejes)
-	          uint16_t x_values[BUFFER_SIZE];
-	          uint16_t y_values[BUFFER_SIZE];
+
 
 	          for(int i = 0; i < BUFFER_SIZE; i++) {
 	              x_values[i] = current_buffer[2 * i];      // Posiciones pares: X
@@ -322,7 +328,7 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.Pulse = 5000;
+  sConfigOC.Pulse = 25000;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
@@ -409,9 +415,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 1200;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 5000;
+  htim3.Init.Period = 25;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -588,7 +594,7 @@ static void MX_GPIO_Init(void)
 //Funcion para inicar la FSM en el estado base. El main.c con drivers propios no lo tiene
 void InitProgram(void)
 {
-
+	__NOP();
 }
 
 

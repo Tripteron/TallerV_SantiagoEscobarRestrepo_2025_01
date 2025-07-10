@@ -75,6 +75,8 @@ void Error_Handler(void);
 #define red_rgb_PWM_GPIO_Port GPIOB
 #define green_rgb_PWM_Pin GPIO_PIN_14
 #define green_rgb_PWM_GPIO_Port GPIOB
+#define blue_rgb_PWM_Pin GPIO_PIN_15
+#define blue_rgb_PWM_GPIO_Port GPIOB
 #define pinDigit1_Pin GPIO_PIN_6
 #define pinDigit1_GPIO_Port GPIOC
 #define pinSegmentE_Pin GPIO_PIN_8
@@ -84,8 +86,6 @@ void Error_Handler(void);
 #define pinEncoderSW_Pin GPIO_PIN_8
 #define pinEncoderSW_GPIO_Port GPIOA
 #define pinEncoderSW_EXTI_IRQn EXTI9_5_IRQn
-#define blue_rgb_PWM_Pin GPIO_PIN_10
-#define blue_rgb_PWM_GPIO_Port GPIOA
 #define pinDigit3_Pin GPIO_PIN_11
 #define pinDigit3_GPIO_Port GPIOA
 #define pinDigit4_Pin GPIO_PIN_12
