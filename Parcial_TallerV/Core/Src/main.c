@@ -127,6 +127,9 @@ void mostrarMiles(void);
 void update7SegmentDisplay(void);
 void segmentoON(uint8_t number);
 void divideNumber(uint16_t contador);
+void ProcessUARTCommand(char* cmd);
+void comandoHelp(void);
+void comandoRGB(char* command);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -172,6 +175,7 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+
   HAL_UART_Receive_DMA(&huart2, (uint8_t*)uart_rx_buffer, UART_BUFFER_SIZE);
   HAL_TIM_Base_Start_IT(&htim4);
   HAL_TIM_Base_Start_IT(&htim2);
@@ -375,7 +379,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 32000;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -385,12 +389,10 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.Pulse = 50000;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
-  sConfigOC.Pulse = 25000;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
@@ -945,6 +947,9 @@ void Process_Command(const char* cmd) {
         pwm_blue = (uint8_t)atoi(ptr+1);
         pwm_blue = (pwm_blue > 100) ? 100 : pwm_blue;
     }
+    else if (strcmp(cmd, "HELP") == 0) {
+        comandoHelp();
+    }
 
     // Actualizar PWM
     __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, (pwm_red * htim1.Init.Period) / 100);
@@ -954,6 +959,25 @@ void Process_Command(const char* cmd) {
     char response[32];
     snprintf(response, 32, "SET: R%d G%d B%d\r\n", pwm_red, pwm_green, pwm_blue);
     HAL_UART_Transmit(&huart2, (uint8_t*)response, strlen(response), 10);
+}
+void comandoHelp(void) {
+    const char *help_message =
+        "Comandos disponibles:\r\n"
+        "RGB=<r,g,b> - Cambia ciclo de trabajo de PWM, rango de 0 a 100 (ej: RGB=70,25,99)\r\n"
+        "HELP - Muestra esta ayuda\r\n"
+        "END_HELP\r\n";  // Marcador de fin
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)help_message, strlen(help_message), 100);
+}
+
+void comandoRGB(char* command)
+{
+
+     {
+      const char* error_msg = "ERROR:Valor invalido (1-100)\r\n";
+      HAL_UART_Transmit(&huart2, (uint8_t*)error_msg, strlen(error_msg), 100);
+    }
+
 }
 
 // maquina de estados
@@ -1055,7 +1079,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if(huart->Instance == USART2) {
         // Buscar fin de comando (nueva línea)
         for(uint8_t i = 0; i < UART_BUFFER_SIZE; i++) {
-            if(uart_rx_buffer[i] == '\n') {
+            if(uart_rx_buffer[i] == '\n' ||uart_rx_buffer[i] == '\r') {
                 uart_rx_len = i;
                 uart_cmd_ready = 1;
                 break;
@@ -1065,7 +1089,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         HAL_UART_Receive_DMA(&huart2, (uint8_t*)uart_rx_buffer, UART_BUFFER_SIZE);
     }
 }
-
 //ADC
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc) {
     // Se llenó la primera mitad del buffer actual
