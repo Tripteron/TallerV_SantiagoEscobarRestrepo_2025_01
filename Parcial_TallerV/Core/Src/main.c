@@ -79,8 +79,11 @@ volatile enum {
 volatile uint8_t data_ready = 0;
 
 //7 segmentos
-uint8_t contadorDigito = 0;
-volatile uint16_t display_value = 0;  // Valor a mostrar en el display (0-100)
+uint8_t contadorDigito_XX = 0;
+uint8_t contadorDigito_YY = 0;
+volatile uint16_t display_value_XX = 0;  // Valor a mostrar en el display XX (0-100)
+volatile uint16_t display_value_YY = 0;  // Valor a mostrar en el display YY (0-100)
+
 uint8_t miles = 0;
 uint8_t centenas = 0;
 uint8_t decenas = 0;
@@ -106,9 +109,8 @@ void mostrarUnidades(void);
 void mostrarDecenas(void);
 void mostrarCentenas(void);
 void mostrarMiles(void);
-void segmentoXX_derecha(uint16_t ejeX_value);
-void segmentoYY_Izquierda(uint16_t ejeY_value);
-void update7SegmentDisplay(void);
+void update7SegmentDisplay_XX(void);
+void update7SegmentDisplay_YY(void);
 void segmentoON(uint8_t number);
 void divideNumber(uint16_t contador);
 /* USER CODE END PFP */
@@ -686,12 +688,7 @@ void InitProgram(void)
 	stateMachine.state=IDLE;
 	current_buffer_section = BUFFER_PING_FIRST_HALF;
 }
-void segmentoXX_derecha(uint16_t ejeX_value){
 
-}
-void segmentoYY_Izquierda(uint16_t ejeY_value){
-
-}
 void divideNumber(uint16_t contador)
 {
 	if(contador ==4096)
@@ -703,17 +700,20 @@ void divideNumber(uint16_t contador)
 	decenas = contador/10 %10;
 	unidades = contador%10;
 }
-void update7SegmentDisplay(void)
+void update7SegmentDisplay_XX(void)
 {
-	if(contadorDigito == 4)
+	if(contadorDigito_XX == 4)
 	{
-		contadorDigito = 0;
+		contadorDigito_XX = 0;
 	}
-	if(display_value>=100){
-		display_value = 99;
+	if(display_value_XX>=100){
+		display_value_XX = 99;
 	}
-	divideNumber(display_value);
-	switch(contadorDigito)
+	if(display_value_YY>=100){
+		display_value_YY = 99;
+	}
+	divideNumber(display_value_XX + display_value_YY*100);
+	switch(contadorDigito_XX)
 	{
 		case 0:
 			mostrarUnidades();
@@ -728,7 +728,28 @@ void update7SegmentDisplay(void)
 			mostrarMiles();
 		break;
 	}
-	contadorDigito++;
+	contadorDigito_XX++;
+}
+void update7SegmentDisplay_YY(void)
+{
+	if(contadorDigito_YY == 2)
+	{
+		contadorDigito_YY = 0;
+	}
+	if(display_value_YY>=100){
+		display_value_YY = 99;
+	}
+	divideNumber(display_value_YY);
+	switch(contadorDigito_YY)
+	{
+		case 0:
+			mostrarCentenas();
+		break;
+		case 1:
+			mostrarMiles();
+		break;
+	}
+	contadorDigito_YY++;
 }
 void segmentoON(uint8_t number)
 {
@@ -915,7 +936,19 @@ e_PosibleStates state_machine_action(uint8_t event)
 				x_values[i] = (current_half[2 * i]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
 				y_values[i] = (current_half[2 * i + 1]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
 			}
+			//Promedio para eje X
+			uint32_t sumaTotal_ejeX = 0;
+			for(int i = 0; i < BUFFER_SIZE/2; i++) {
+				sumaTotal_ejeX += x_values[i];
+			}
+			display_value_XX = 2*sumaTotal_ejeX / BUFFER_SIZE;  // Promedio entero
 
+			//Promedio para eje Y
+			uint32_t sumaTotal_ejeY = 0;
+			for(int i = 0; i < BUFFER_SIZE/2; i++) {
+				sumaTotal_ejeY += y_values[i];
+			}
+			display_value_YY = 2*sumaTotal_ejeY / BUFFER_SIZE;  // Promedio entero
 
 			data_ready = 0;
 
@@ -933,12 +966,9 @@ e_PosibleStates state_machine_action(uint8_t event)
 
 	case DISPLAY:
 	{
-		uint32_t sumaTotal_ejeX = 0;
-		for(int i = 0; i < BUFFER_SIZE; i++) {
-			sumaTotal_ejeX += x_values[i];
-		}
-		display_value = 2*sumaTotal_ejeX / BUFFER_SIZE;  // Promedio entero
-		update7SegmentDisplay();
+
+		update7SegmentDisplay_XX();
+//		update7SegmentDisplay_YY();
 		stateMachine.state=IDLE;
 	}
 	return stateMachine.state;
