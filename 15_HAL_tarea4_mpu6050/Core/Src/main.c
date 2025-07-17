@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "maquina_estados_hal.h"
 #include "main.h"
 #include "arm_math.h"
 #include "arm_const_structs.h"
@@ -76,6 +77,9 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
+
+fsm_states_t stateMachine = {0};
+
 // --- Instancias de nuestros dispositivos ---
 DisplayDevice_t main_display;
 VibrationSensor_t main_sensor;
@@ -108,7 +112,10 @@ static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
+
 /* USER CODE BEGIN PFP */
+void InitProgram(void);
+e_PosibleStates state_machine_action(uint8_t event);
 // --- Prototipos para el driver del LCD ---
 void display_init(DisplayDevice_t* display, I2C_HandleTypeDef* i2c, uint8_t addr);
 void display_clear(DisplayDevice_t* display);
@@ -179,6 +186,7 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
+  InitProgram();
   HAL_TIM_Base_Start_IT(&htim2);
   // CORRECCIÓN: Inicializar el sensor en I2C1
   sensor_init(&main_sensor, &hi2c1, MPU6050_I2C_ADDR);
@@ -204,37 +212,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  // --- Tarea 1: Capturar datos del sensor (manejado por interrupción) ---
-	          if (new_sensor_data_available) {
-	              new_sensor_data_available = false; // Bajar la bandera
-
-	              sensor_acquire_data(&main_sensor);
-
-	              if (capture_index < FFT_SAMPLES) {
-	                  current_capture_buffer[capture_index++] = main_sensor.accel_z;
-	              }
-
-	              if (capture_index >= FFT_SAMPLES) {
-	                  processing_buffer = current_capture_buffer; // Marcar buffer como listo
-	                  fft_data_is_ready = true;
-	                  capture_index = 0;
-
-	                  // Intercambiar al otro buffer (Ping-Pong)
-	                  current_capture_buffer = (current_capture_buffer == data_capture_ping) ? data_capture_pong : data_capture_ping;
-	              }
-	          }
-
-	          // --- Tarea 2: Procesar FFT cuando un buffer esté lleno ---
-	          if (fft_data_is_ready) {
-	              fft_data_is_ready = false; // Bajar la bandera
-	              dominant_frequency = analyze_vibration_frequency(processing_buffer);
-	          }
-
-	          // --- Tarea 3: Actualizar la pantalla periódicamente sin bloquear ---
-	          if (HAL_GetTick() - last_screen_update > 150) { // Actualizar cada 150 ms
-	              last_screen_update = HAL_GetTick();
-	              refresh_display_data();
-	          }
+	  state_machine_action(0);
+      // --- Tarea 3: Actualizar la pantalla periódicamente sin bloquear ---
+      if (HAL_GetTick() - last_screen_update > 150) { // Actualizar cada 150 ms
+          last_screen_update = HAL_GetTick();
+          refresh_display_data();
+      }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -640,6 +623,67 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void InitProgram(void)
+{
+	stateMachine.state=IDLE;
+}
+// maquina de estados
+e_PosibleStates state_machine_action(uint8_t event)
+{
+	switch (stateMachine.state){
+	case IDLE:
+	{
+  // --- Tarea 1: Capturar datos del sensor (manejado por interrupción) ---
+		  if (new_sensor_data_available) {
+			stateMachine.state=EXTI_MPU6050;
+		  }
+
+		  // --- Tarea 2: Procesar FFT cuando un buffer esté lleno ---
+		  if (fft_data_is_ready) {
+				stateMachine.state=FFT_READY;
+		  }
+
+	}
+	return stateMachine.state;
+
+	case EXTI_MPU6050:
+	{
+		stateMachine.state=IDLE;
+        new_sensor_data_available = false; // Bajar la bandera
+
+        sensor_acquire_data(&main_sensor);
+
+        if (capture_index < FFT_SAMPLES) {
+            current_capture_buffer[capture_index++] = main_sensor.accel_z;
+        }
+
+        if (capture_index >= FFT_SAMPLES) {
+            processing_buffer = current_capture_buffer; // Marcar buffer como listo
+            fft_data_is_ready = true;
+            capture_index = 0;
+
+            // Intercambiar al otro buffer (Ping-Pong)
+            current_capture_buffer = (current_capture_buffer == data_capture_ping) ? data_capture_pong : data_capture_ping;
+        }
+
+	}
+	return stateMachine.state;
+
+	case FFT_READY:
+	{
+		stateMachine.state=IDLE;
+        fft_data_is_ready = false; // Bajar la bandera
+        dominant_frequency = analyze_vibration_frequency(processing_buffer);
+	}
+	return stateMachine.state;
+	default:
+		{
+		stateMachine.state = IDLE;
+		return stateMachine.state;
+		}
+
+	}
+}
 
 // Funciones públicas para el LCD
 void display_set_cursor(DisplayDevice_t* display, uint8_t row, uint8_t col) {
