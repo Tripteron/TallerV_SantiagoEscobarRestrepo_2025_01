@@ -65,6 +65,7 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define mpu_EXTI_Pin GPIO_PIN_4
 #define mpu_EXTI_GPIO_Port GPIOA
+#define mpu_EXTI_EXTI_IRQn EXTI4_IRQn
 #define green_rgb_Pin GPIO_PIN_4
 #define green_rgb_GPIO_Port GPIOC
 #define pinDigit2_Pin GPIO_PIN_5
