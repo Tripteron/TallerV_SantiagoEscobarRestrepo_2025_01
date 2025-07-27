@@ -49,6 +49,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -63,41 +65,16 @@ void Error_Handler(void);
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
 #define USART_RX_GPIO_Port GPIOA
-#define mpu_EXTI_Pin GPIO_PIN_4
-#define mpu_EXTI_GPIO_Port GPIOA
-#define mpu_EXTI_EXTI_IRQn EXTI4_IRQn
-#define green_rgb_Pin GPIO_PIN_4
-#define green_rgb_GPIO_Port GPIOC
-#define pinDigit2_Pin GPIO_PIN_5
-#define pinDigit2_GPIO_Port GPIOC
-#define red_rgb_Pin GPIO_PIN_13
-#define red_rgb_GPIO_Port GPIOB
-#define pinSegmentA_Pin GPIO_PIN_14
-#define pinSegmentA_GPIO_Port GPIOB
-#define pinDigit1_Pin GPIO_PIN_6
-#define pinDigit1_GPIO_Port GPIOC
-#define pinSegmentE_Pin GPIO_PIN_8
-#define pinSegmentE_GPIO_Port GPIOC
-#define pinSegmentD_Pin GPIO_PIN_9
-#define pinSegmentD_GPIO_Port GPIOC
-#define blue_rgb_Pin GPIO_PIN_10
-#define blue_rgb_GPIO_Port GPIOA
-#define pinDigit3_Pin GPIO_PIN_11
-#define pinDigit3_GPIO_Port GPIOA
-#define pinDigit4_Pin GPIO_PIN_12
-#define pinDigit4_GPIO_Port GPIOA
+#define PWM_servo3_Pin GPIO_PIN_6
+#define PWM_servo3_GPIO_Port GPIOC
+#define PWM_servo2_Pin GPIO_PIN_7
+#define PWM_servo2_GPIO_Port GPIOC
+#define PWM_servo1_Pin GPIO_PIN_8
+#define PWM_servo1_GPIO_Port GPIOC
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
-#define pinSegmentF_Pin GPIO_PIN_10
-#define pinSegmentF_GPIO_Port GPIOC
-#define pinSegmentG_Pin GPIO_PIN_11
-#define pinSegmentG_GPIO_Port GPIOC
-#define pinSegmentC_Pin GPIO_PIN_12
-#define pinSegmentC_GPIO_Port GPIOC
-#define pinSegmentB_Pin GPIO_PIN_2
-#define pinSegmentB_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 
