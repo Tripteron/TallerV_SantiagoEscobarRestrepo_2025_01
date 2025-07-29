@@ -61,6 +61,12 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define pinH1Led2Board_Pin GPIO_PIN_1
 #define pinH1Led2Board_GPIO_Port GPIOH
+#define EXTI1_joystickSW_Pin GPIO_PIN_1
+#define EXTI1_joystickSW_GPIO_Port GPIOC
+#define ADC1_joystickY_Pin GPIO_PIN_0
+#define ADC1_joystickY_GPIO_Port GPIOA
+#define ADC1_joystickX_Pin GPIO_PIN_1
+#define ADC1_joystickX_GPIO_Port GPIOA
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
