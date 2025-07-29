@@ -41,11 +41,15 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define UART_RX_BUF_SIZE 64
 
 // Parámetros geométricos ajustados
-#define ARM_LENGTH    9.5f   // Longitud del brazo del servo en cm
+//#define ARM_LENGTH    9.5f   // Longitud del brazo del servo en cm
 #define TRIANGLE_SIDE 17.0f   // Lado del triángulo equilátero en cm
-
+#define ARM_LENGTH    9.5f   // Longitud del brazo del servo en cm
+#define SIDE_AC       17.0f  // Lado AC en cm
+#define SIDE_BC       17.0f  // Lado BC en cm
+#define BASE_AB       19.0f  // Base AB en cm
 // --- Direcciones I2C ---
 #define LCD_I2C_ADDR            (0x23 << 1) // Cambiar a la dirección de tu LCD
 //=============================================================================
@@ -69,8 +73,16 @@ TIM_HandleTypeDef htim4;
 
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
+volatile uint8_t uart_tx_busy = 0; // Nueva bandera para estado TX
+uint8_t command_buffer[UART_RX_BUF_SIZE];  // Nuevo búfer para copia segura
+uint8_t main_rx_buffer[UART_RX_BUF_SIZE]; // Búfer para construir el comando
+uint8_t dma_rx_byte;                      // Búfer de 1 byte para que el DMA escriba
+volatile uint8_t uart_rx_flag = 0;
+volatile uint8_t uart_rx_index = 0;
+
 fsm_states_t stateMachine = {0};
 DisplayDevice_t main_display;
 
@@ -88,6 +100,10 @@ static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) ;
+void ProcessUARTCommand(char* command);
+void comandoHelp(void);
+void clean_command(char* cmd);
 // --- Prototipos para el driver del LCD ---
 void display_init(DisplayDevice_t* display, I2C_HandleTypeDef* i2c, uint8_t addr);
 void display_clear(DisplayDevice_t* display);
@@ -154,6 +170,7 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_DMA(&huart2, &dma_rx_byte, 1);
 
   HAL_TIM_Base_Start_IT(&htim4);
   // Iniciar los 3 canales PWM
@@ -189,7 +206,9 @@ int main(void)
 
   while (1)
   {
-//	  // dibujar círculo completo
+	  state_machine_action(0);
+
+	  // dibujar círculo completo
 //	          for(uint16_t i = 0; i < points; i++) {
 //	              // calcular posición en el círculo (coordenadas cartesianas)
 //	              float angle = 2 * M_PI * i / points;
@@ -562,6 +581,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
 
 }
 
@@ -640,18 +662,109 @@ void display_init(DisplayDevice_t* display, I2C_HandleTypeDef* i2c, uint8_t addr
     display_send_byte(display, 0x06, 0); // Incremento de cursor
     display_clear(display);
 }
+
+
+
+
+/**
+  * @brief Envía el mensaje de ayuda o informa si el UART está ocupado.
+  */
+void comandoHelp(void) {
+    // Verificamos si el transmisor del UART está libre
+    if (!uart_tx_busy)
+    {
+        const char *help_message =
+            "\r\n--- MENU DE AYUDA ---\r\n"
+            "Comandos disponibles:\r\n"
+            "HELP    - Muestra esta ayuda\r\n"
+            "CIRCULO - Inicia el dibujo del circulo\r\n"
+            "---------------------\r\n\r\n";
+
+        uart_tx_busy = 1;
+        HAL_UART_Transmit_IT(&huart2, (uint8_t*)help_message, strlen(help_message));
+    }
+    else
+    {
+        // Si el UART está ocupado, no hacemos nada o enviamos un mensaje de error corto.
+        // Ojo: esta transmisión corta también podría fallar si el UART está muy congestionado,
+        // pero es improbable en este caso. La opción más segura es no hacer nada.
+        // const char *busy_msg = "UART ocupado, intente de nuevo.\r\n";
+        // HAL_UART_Transmit_DMA(&huart2, (uint8_t*)busy_msg, strlen(busy_msg));
+    }
+}
+
+
+void ProcessUARTCommand(char* command)
+{
+    clean_command(command);  // Limpiar caracteres de nueva línea
+
+	  // Comando para cambiar frecuencia del LED
+	  if (strcmp(command, "HELP") == 0) {
+	        comandoHelp();
+	}
+	else if (strcmp(command, "CIRCULO") == 0) {
+		// Cambiar el estado de la máquina para que dibuje el círculo
+		stateMachine.state = CIRCULO;
+	}
+//	  else if (strcmp(command, "PRINT_ADC") == 0) {
+//	        comandoPrintADC();
+//	    }
+//	  else if (strcmp(command, "PRINT_FFT") == 0) {
+//	        comandoPrintFFT();
+//	    }
+//	   else if (strcmp(command, "FFT_PEAK") == 0) {
+//	        comandoPrintFFTPeak();
+//	    }
+//	    else if (strcmp(command, "HELP") == 0) {
+//	        comandoHelp();
+//	    }
+    else {
+        if (!uart_tx_busy) {
+            const char *error_msg = "Comando no reconocido...\r\n";
+            uart_tx_busy = 1;
+            HAL_UART_Transmit_IT(&huart2, (uint8_t*)error_msg, strlen(error_msg));
+        }
+    }
+
+}
+void clean_command(char* cmd) {
+    char* p = cmd;
+    while (*p) {
+        if (*p == '\r' || *p == '\n') {
+            *p = '\0';
+            break;
+        }
+        p++;
+    }
+}
 // maquina de estados
 e_PosibleStates state_machine_action(uint8_t event)
 {
 	switch (stateMachine.state){
 	case IDLE:
 	{
+	    if(uart_rx_flag) {
+	        // 1. Deshabilitar interrupciones brevemente
+	        __disable_irq();
+
+	        // 2. Copiar comando a búfer seguro
+	        strcpy((char*)command_buffer, (char*)main_rx_buffer);
+	        uart_rx_index = 0;            // Resetear índice
+	        uart_rx_flag = 0;             // Bajar bandera
+
+	        // Limpiar el búfer de recepción para el siguiente comando
+	        memset(main_rx_buffer, 0, UART_RX_BUF_SIZE); // <--- AÑADE ESTA LÍNEA
+
+	        // 3. Habilitar interrupciones
+	        __enable_irq();
+
+	        // 4. Procesar comando desde búfer seguro
+	        ProcessUARTCommand((char*)command_buffer);
+	    }
 
 
 
-
-	}
-	return stateMachine.state;
+	}		return stateMachine.state;
 
 	case CIRCULO:
 	{
@@ -677,18 +790,20 @@ e_PosibleStates state_machine_action(uint8_t event)
 			  HAL_Delay(delay);
 		  }
 		stateMachine.state=IDLE;
-	}
-	return stateMachine.state;
+	}return stateMachine.state;
 
 	default:
 		{
 		stateMachine.state = IDLE;
-		return stateMachine.state;
-		}
+		}		return stateMachine.state;
+
 
 	}
+    // Retornar el estado actual al final de la función
+	return stateMachine.state;
+
 }
-// Función para convertir coordenadas (x,y) a ángulos de servo
+
 // Función para convertir coordenadas (x,y) a ángulos de servo
 void cartesianToServoAngles(float x, float y, uint16_t angles[3]) {
     // Calcular la altura del triángulo equilátero
@@ -719,6 +834,33 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		HAL_GPIO_TogglePin(pinH1Led2Board_GPIO_Port, pinH1Led2Board_Pin);	}
 
+}
+/**
+  * @brief  Callback que se ejecuta cuando la recepción UART por DMA está completa.
+  * @param  huart: puntero a la estructura UART.
+  * @retval None
+  */
+// Modificar la callback de UART
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if(huart->Instance == USART2) {
+        if (dma_rx_byte == '\r' || dma_rx_byte == '\n') {
+            if (uart_rx_index > 0) {
+                main_rx_buffer[uart_rx_index] = '\0'; // Terminar string
+                uart_rx_flag = 1;                     // Levantar bandera
+                uart_rx_index = 0;
+            }
+        }
+        else if (uart_rx_index < UART_RX_BUF_SIZE - 1) {
+            main_rx_buffer[uart_rx_index++] = dma_rx_byte;
+        }
+        HAL_UART_Receive_DMA(huart, &dma_rx_byte, 1); // Reactivar DMA
+    }
+}
+// Callback de transmisión UART completada
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART2) {
+        uart_tx_busy = 0; // Liberar el UART
+    }
 }
 /* USER CODE END 4 */
 
