@@ -27,6 +27,7 @@
 #include "arm_const_structs.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdbool.h>
 /* USER CODE END Includes */
 
@@ -202,26 +203,16 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_ping, 2 * BUFFER_SIZE);
-
   HAL_UART_Receive_DMA(&huart2, &dma_rx_byte, 1);
-
   HAL_TIM_Base_Start(&htim2);				// muestreo ADC
   HAL_TIM_Base_Start_IT(&htim4);
-  // Iniciar los 3 canales PWM
+  // iniciar los 3 canales PWM
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);  // PC6
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);  // PC7
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);  // PC8
 
-
-//  // Posición inicial (centro)
-//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
-//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1500);
-//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1500);
-//  HAL_Delay(2000);
-
-  // CORRECCIÓN: Inicializar la pantalla en I2C1
   display_init(&main_display, &hi2c1, LCD_I2C_ADDR);
-  // Mensaje de bienvenida
+  // mensaje de bienvenida
   display_set_cursor(&main_display, 0, 2);
   display_write_string(&main_display, "Proyecto Final");
   display_set_cursor(&main_display, 1, 3);
@@ -229,10 +220,9 @@ int main(void)
   HAL_Delay(2000);
   display_clear(&main_display);
 
-  // Variable para guardar el estado anterior y detectar cambios
+  // variable para guardar el estado anterior y detectar cambios
    e_PosibleStates estado_previo = -1; // Valor inicial que no coincide con ningún estado
-
-   // Actualizar la pantalla con el estado inicial
+   // actualizar la pantalla con el estado inicial
    actualizar_display_estado(stateMachine.state);
    estado_previo = stateMachine.state;
 
@@ -249,30 +239,21 @@ int main(void)
 	  state_machine_action(0);
 	     // Comprobar si el estado ha cambiado
 	      if (stateMachine.state != estado_previo) {
+	          // Si estamos SALIENDO del estado JOYSTICK
+	          if (estado_previo == JOYSTICK) {
+	              // Reiniciamos el modo DMA para la adquisición de datos original
+	              HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer_ping, 2 * BUFFER_SIZE);
+	          }
+	          // Si estamos ENTRANDO al estado JOYSTICK
+			   if (stateMachine.state == JOYSTICK) {
+				   // Detenemos el modo DMA para tomar control manual
+				   HAL_ADC_Stop_DMA(&hadc1);
+			   }
 	          // Si cambió, actualizar la pantalla
 	          actualizar_display_estado(stateMachine.state);
 	          // Guardar el nuevo estado como el previo para la siguiente iteración
 	          estado_previo = stateMachine.state;
 	      }
-
-	  // dibujar círculo completo
-//	          for(uint16_t i = 0; i < points; i++) {
-//	              // calcular posición en el círculo (coordenadas cartesianas)
-//	              float angle = 2 * M_PI * i / points;
-//	              float x = circle_radius * cosf(angle);
-//	              float y = circle_radius * sinf(angle);
-//
-//	              // calcular ángulos de los servos
-//	              uint16_t servo_angles[3];
-//	              cartesianToServoAngles(x, y, servo_angles);
-//
-//	              // enviar comandos a los servos
-//	              __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_angles[0]);
-//	              __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_angles[1]);
-//	              __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angles[2]);
-//
-//	              HAL_Delay(delay);
-//	          }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -781,6 +762,7 @@ void comandoHelp(void) {
         const char *help_message =
             "\r\n--- MENU DE AYUDA ---\r\n"
             "Comandos disponibles:\r\n"
+        	"IDLE       - Comando para pausar y estar en estado Base\r\n"
             "HELP		- Muestra esta ayuda\r\n"
             "CIRCULO	- Inicia el dibujo del circulo\r\n"
         	"CENTRAR	- Lleva el lacipero al centro de la base\r\n"
@@ -788,6 +770,8 @@ void comandoHelp(void) {
 			"LINEA_AB   - Dibuja una linea paralela al eje AB\r\n"
 			"LINEA_BC   - Dibuja una linea paralela al eje BC\r\n"
 			"LINEA_CA   - Dibuja una linea paralela al eje CA\r\n"
+			"JOYSTICK   - Activa el control manual\r\n"
+
             "---------------------\r\n\r\n";
 
         uart_tx_busy = 1;
@@ -835,6 +819,9 @@ void ProcessUARTCommand(char* command)
     else if (strcmp(command, "CORAZON") == 0) {
         stateMachine.state = CORAZON;
     }
+    else if (strcmp(command, "JOYSTICK") == 0) {
+	        stateMachine.state = JOYSTICK;
+	    }
     else {
         if (!uart_tx_busy) {
             const char *error_msg =
@@ -890,6 +877,9 @@ void actualizar_display_estado(e_PosibleStates estado_actual) {
         case CORAZON:
             sprintf(lcd_buffer, "ESTADO: CORAZON");
             break;
+        case JOYSTICK:
+        	sprintf(lcd_buffer, "ESTADO: JOYSTICK");
+        	break;
         default:
             sprintf(lcd_buffer, "ESTADO: ???");
             break;
@@ -1229,6 +1219,57 @@ e_PosibleStates state_machine_action(uint8_t event)
 				}
 	    }
 
+	}return stateMachine.state;
+
+	case JOYSTICK:
+	{
+	    // Revisa si ha llegado un nuevo comando
+	    if (uart_rx_flag) {
+	        __disable_irq();
+	        strcpy((char*)command_buffer, (char*)main_rx_buffer);
+	        uart_rx_index = 0;
+	        uart_rx_flag = 0;
+	        memset(main_rx_buffer, 0, UART_RX_BUF_SIZE);
+	        __enable_irq();
+
+	        // Procesa el nuevo comando para decidir si cambia de estado
+	        ProcessUARTCommand((char*)command_buffer);
+
+	    }
+	    else{
+            uint16_t adc_values[2]; // Para guardar X y Y
+            float x_coord, y_coord;
+            const float workspace_size = 5.0f; // Rango: -5cm a +5cm
+            const int32_t deadzone = 150;      // Zona muerta del joystick
+
+            // Realiza 2 conversiones en modo polled (una para cada canal)
+            HAL_ADC_Start(&hadc1);
+            for (int i = 0; i < 2; i++) {
+                HAL_ADC_PollForConversion(&hadc1, 10);
+                adc_values[i] = HAL_ADC_GetValue(&hadc1);
+            }
+            HAL_ADC_Stop(&hadc1);
+
+            // Mapeo X: adc_values[1] (PA1)
+            if (abs((int)adc_values[1] - 2048) < deadzone) x_coord = 0.0f;
+            else x_coord = -workspace_size + ((float)adc_values[1] / 4095.0f) * (2 * workspace_size);
+
+            // Mapeo Y: adc_values[0] (PA0)
+            if (abs((int)adc_values[0] - 2048) < deadzone) y_coord = 0.0f;
+            else y_coord = -workspace_size + ((float)adc_values[0] / 4095.0f) * (2 * workspace_size);
+
+            // Es común tener que invertir un eje, ajusta si es necesario
+            y_coord = -y_coord;
+
+            // Mover los servos
+            uint16_t servo_angles[3];
+            cartesianToServoAngles(x_coord, y_coord, servo_angles);
+            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_angles[0]);
+            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_angles[1]);
+            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angles[2]);
+
+            HAL_Delay(10); // Pequeño delay para no saturar
+	    }
 	}return stateMachine.state;
 
 
