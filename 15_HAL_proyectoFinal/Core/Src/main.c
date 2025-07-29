@@ -47,7 +47,6 @@ typedef struct {
 #define TRIANGLE_SIDE 17.0f   // Lado del triángulo equilátero en cm
 
 // --- Direcciones I2C ---
-#define MPU6050_I2C_ADDR        (0x68 << 1)
 #define LCD_I2C_ADDR            (0x23 << 1) // Cambiar a la dirección de tu LCD
 //=============================================================================
 #pragma region /// Driver para Pantalla LCD (integrado) ///
@@ -62,7 +61,6 @@ typedef struct {
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c2;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -87,9 +85,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_I2C2_Init(void);
 static void MX_TIM1_Init(void);
-
 /* USER CODE BEGIN PFP */
 
 // --- Prototipos para el driver del LCD ---
@@ -156,10 +152,8 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_I2C1_Init();
-  MX_I2C2_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  display_init(&main_display, &hi2c2, LCD_I2C_ADDR);
 
   HAL_TIM_Base_Start_IT(&htim4);
   // Iniciar los 3 canales PWM
@@ -168,14 +162,14 @@ int main(void)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);  // PC8
 
 
-  // Posición inicial (centro)
-  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
-  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1500);
-  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1500);
-  HAL_Delay(2000);
+//  // Posición inicial (centro)
+//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
+//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 1500);
+//  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 1500);
+//  HAL_Delay(2000);
 
-  // CORRECCIÓN: Inicializar la pantalla en I2C2
-  display_init(&main_display, &hi2c2, LCD_I2C_ADDR);
+  // CORRECCIÓN: Inicializar la pantalla en I2C1
+  display_init(&main_display, &hi2c1, LCD_I2C_ADDR);
   // Mensaje de bienvenida
   display_set_cursor(&main_display, 0, 2);
   display_write_string(&main_display, "Proyecto Final");
@@ -297,40 +291,6 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
-  * @brief I2C2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C2_Init(void)
-{
-
-  /* USER CODE BEGIN I2C2_Init 0 */
-
-  /* USER CODE END I2C2_Init 0 */
-
-  /* USER CODE BEGIN I2C2_Init 1 */
-
-  /* USER CODE END I2C2_Init 1 */
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.ClockSpeed = 100000;
-  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C2_Init 2 */
-
-  /* USER CODE END I2C2_Init 2 */
 
 }
 
@@ -633,80 +593,60 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(pinH1Led2Board_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF9_I2C2;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+// Funciones públicas para el LCD
+void display_set_cursor(DisplayDevice_t* display, uint8_t row, uint8_t col) {
+    const uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+    display_send_byte(display, 0x80 | (row_offsets[row] + col), 0);
+}
+
+void display_write_string(DisplayDevice_t* display, const char* str) {
+    while (*str) {
+        display_send_byte(display, *str++, 1);
+    }
+}
+
+void display_clear(DisplayDevice_t* display) {
+    display_send_byte(display, 0x01, 0);
+    HAL_Delay(2);
+}
+
+void display_init(DisplayDevice_t* display, I2C_HandleTypeDef* i2c, uint8_t addr) {
+    display->i2c_handle = i2c;
+    display->i2c_addr = addr;
+    display->backlight = 0x08; // Backlight ON
+
+    HAL_Delay(50);
+    display_send_nibble(display, 0x03, 0); HAL_Delay(5);
+    display_send_nibble(display, 0x03, 0); HAL_Delay(1);
+    display_send_nibble(display, 0x03, 0); HAL_Delay(1);
+    display_send_nibble(display, 0x02, 0); // Modo 4 bits
+
+    display_send_byte(display, 0x28, 0); // 2 líneas, 5x8
+    display_send_byte(display, 0x0C, 0); // Display ON, Cursor OFF
+    display_send_byte(display, 0x06, 0); // Incremento de cursor
+    display_clear(display);
+}
 // maquina de estados
 e_PosibleStates state_machine_action(uint8_t event)
 {
 	switch (stateMachine.state){
 	case IDLE:
 	{
-//		  const float circle_radius = 3.0f;  // Radio del círculo en cm
-//		  const uint16_t points = 100;       // Puntos para aproximar el círculo
-//		  const uint16_t delay = 20;         // Tiempo entre puntos (ms)
 
-//	    if(uart_cmd_ready)
-//	    {
-//	        // Convertir a string terminado en null
-//	        char cmd_buffer[UART_BUFFER_SIZE + 1];
-//	        memcpy(cmd_buffer, (const char*)uart_rx_buffer, uart_rx_len);
-//	        cmd_buffer[uart_rx_len] = '\0';
-//
-//	        // Procesar comando
-//	        Process_Command(cmd_buffer);
-//
-//	        // Resetear flag
-//	        uart_cmd_ready = 0;
-//	    }
-	    // ... (otras tareas)
-//	   if(data_ready)
-//	   {
-//			volatile uint16_t* current_half;
-//
-//
-//			// Determinar qué sección procesar
-//			switch(current_buffer_section) {
-//				case BUFFER_PING_FIRST_HALF:
-//					current_half = adc_buffer_ping;
-//					break;
-//				case BUFFER_PING_SECOND_HALF:
-//					current_half = adc_buffer_ping + BUFFER_SIZE;
-//					break;
-//				case BUFFER_PONG_FIRST_HALF:
-//					current_half = adc_buffer_pong;
-//					break;
-//				case BUFFER_PONG_SECOND_HALF:
-//					current_half = adc_buffer_pong + BUFFER_SIZE;
-//					break;
-//			}
-
-//			// Separar ejes (2 muestras por posición)
-//			for(int i = 0; i < BUFFER_SIZE/2; i++) {
-//				x_values[i] = (current_half[2 * i]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
-//				y_values[i] = (current_half[2 * i + 1]* 100 + 2047) / 4095; ; // Redondeo al entero más cercano
-//			}
-//			//Promedio para eje X
-//			uint32_t sumaTotal_ejeX = 0;
-//			for(int i = 0; i < BUFFER_SIZE/2; i++) {
-//				sumaTotal_ejeX += x_values[i];
-//			}
-//			display_value_XX = 2*sumaTotal_ejeX / BUFFER_SIZE;  // Promedio entero
-//
-//			//Promedio para eje Y
-//			uint32_t sumaTotal_ejeY = 0;
-//			for(int i = 0; i < BUFFER_SIZE/2; i++) {
-//				sumaTotal_ejeY += y_values[i];
-//			}
-//			display_value_YY = 2*sumaTotal_ejeY / BUFFER_SIZE;  // Promedio entero
-//
-//			data_ready = 0;
-
-			// AQUÍ PROCESAR LOS DATOS (x_values y y_values)
-//		}
 
 
 
