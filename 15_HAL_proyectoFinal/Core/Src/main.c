@@ -706,6 +706,10 @@ void ProcessUARTCommand(char* command)
 		// Cambiar el estado de la máquina para que dibuje el círculo
 		stateMachine.state = CIRCULO;
 	}
+	else if (strcmp(command, "IDLE") == 0) {
+		// Cambiar el estado de la máquina para que dibuje el círculo
+		stateMachine.state = IDLE;
+	}
 //	  else if (strcmp(command, "PRINT_ADC") == 0) {
 //	        comandoPrintADC();
 //	    }
@@ -720,7 +724,10 @@ void ProcessUARTCommand(char* command)
 //	    }
     else {
         if (!uart_tx_busy) {
-            const char *error_msg = "Comando no reconocido...\r\n";
+            const char *error_msg =
+			"Comando no reconocido. Enviar HELP para información...\r\n"
+			"¡IMPORTANTE! todo comando debe llevar Enter al final\r\n";
+
             uart_tx_busy = 1;
             HAL_UART_Transmit_IT(&huart2, (uint8_t*)error_msg, strlen(error_msg));
         }
@@ -765,32 +772,71 @@ e_PosibleStates state_machine_action(uint8_t event)
 
 
 	}		return stateMachine.state;
-
 	case CIRCULO:
 	{
-		  const float circle_radius = 3.0f;  // Radio del círculo en cm
-		  const uint16_t points = 100;       // Puntos para aproximar el círculo
-		  const uint16_t delay = 20;         // Tiempo entre puntos (ms)
-	// dibujar círculo completo
-		  for(uint16_t i = 0; i < points; i++) {
-			  // calcular posición en el círculo (coordenadas cartesianas)
-			  float angle = 2 * M_PI * i / points;
-			  float x = circle_radius * cosf(angle);
-			  float y = circle_radius * sinf(angle);
+	    // Revisa si ha llegado un nuevo comando
+	    if (uart_rx_flag) {
+	        __disable_irq();
+	        strcpy((char*)command_buffer, (char*)main_rx_buffer);
+	        uart_rx_index = 0;
+	        uart_rx_flag = 0;
+	        memset(main_rx_buffer, 0, UART_RX_BUF_SIZE);
+	        __enable_irq();
 
-			  // calcular ángulos de los servos
-			  uint16_t servo_angles[3];
-			  cartesianToServoAngles(x, y, servo_angles);
+	        // Procesa el nuevo comando para decidir si cambia de estado
+	        ProcessUARTCommand((char*)command_buffer);
 
-			  // enviar comandos a los servos
-			  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_angles[0]);
-			  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_angles[1]);
-			  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angles[2]);
+	    } else { // Si no hay nuevo comando, sigue dibujando el círculo
+	        const float circle_radius = 3.0f;
+	        const uint16_t points = 100;
+	        const uint16_t delay = 20;
 
-			  HAL_Delay(delay);
-		  }
-		stateMachine.state=IDLE;
+	        for (uint16_t i = 0; i < points; i++) {
+	            // Si durante el dibujo llega un comando, interrumpe el círculo y procesa
+	            if (uart_rx_flag) break;
+
+	            float angle = 2 * M_PI * i / points;
+	            float x = circle_radius * cosf(angle);
+	            float y = circle_radius * sinf(angle);
+
+	            uint16_t servo_angles[3];
+	            cartesianToServoAngles(x, y, servo_angles);
+
+	            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_angles[0]);
+	            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_angles[1]);
+	            __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angles[2]);
+
+	            HAL_Delay(delay);
+	        }
+	    }
 	}return stateMachine.state;
+
+
+//	case CIRCULO:
+//	{
+//		  const float circle_radius = 3.0f;  // Radio del círculo en cm
+//		  const uint16_t points = 100;       // Puntos para aproximar el círculo
+//		  const uint16_t delay = 20;         // Tiempo entre puntos (ms)
+//	// dibujar círculo completo
+//		  for(uint16_t i = 0; i < points; i++) {
+//			  // calcular posición en el círculo (coordenadas cartesianas)
+//			  float angle = 2 * M_PI * i / points;
+//			  float x = circle_radius * cosf(angle);
+//			  float y = circle_radius * sinf(angle);
+//
+//			  // calcular ángulos de los servos
+//			  uint16_t servo_angles[3];
+//			  cartesianToServoAngles(x, y, servo_angles);
+//
+//			  // enviar comandos a los servos
+//			  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_angles[0]);
+//			  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_angles[1]);
+//			  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angles[2]);
+//
+//			  HAL_Delay(delay);
+//		  }
+//		stateMachine.state=IDLE;
+//	}return stateMachine.state;
 
 	default:
 		{
