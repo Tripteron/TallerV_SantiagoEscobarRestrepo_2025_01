@@ -678,6 +678,7 @@ void comandoHelp(void) {
             "Comandos disponibles:\r\n"
             "HELP    - Muestra esta ayuda\r\n"
             "CIRCULO - Inicia el dibujo del circulo\r\n"
+			"LINEA_AB            - Dibuja una linea paralela al eje AB\r\n"
             "---------------------\r\n\r\n";
 
         uart_tx_busy = 1;
@@ -710,6 +711,9 @@ void ProcessUARTCommand(char* command)
 		// Cambiar el estado de la máquina para que dibuje el círculo
 		stateMachine.state = IDLE;
 	}
+    else if (strcmp(command, "LINEA_AB") == 0) {
+        stateMachine.state = LINEA_PARALELA_AB; // Cambiar al estado LINEA
+    }
 //	  else if (strcmp(command, "PRINT_ADC") == 0) {
 //	        comandoPrintADC();
 //	    }
@@ -718,9 +722,6 @@ void ProcessUARTCommand(char* command)
 //	    }
 //	   else if (strcmp(command, "FFT_PEAK") == 0) {
 //	        comandoPrintFFTPeak();
-//	    }
-//	    else if (strcmp(command, "HELP") == 0) {
-//	        comandoHelp();
 //	    }
     else {
         if (!uart_tx_busy) {
@@ -810,8 +811,6 @@ e_PosibleStates state_machine_action(uint8_t event)
 	        }
 	    }
 	}return stateMachine.state;
-
-
 //	case CIRCULO:
 //	{
 //		  const float circle_radius = 3.0f;  // Radio del círculo en cm
@@ -837,6 +836,48 @@ e_PosibleStates state_machine_action(uint8_t event)
 //		  }
 //		stateMachine.state=IDLE;
 //	}return stateMachine.state;
+	case LINEA_PARALELA_AB:
+	{
+	    // Revisa si ha llegado un nuevo comando
+	    if (uart_rx_flag) {
+	        __disable_irq();
+	        strcpy((char*)command_buffer, (char*)main_rx_buffer);
+	        uart_rx_index = 0;
+	        uart_rx_flag = 0;
+	        memset(main_rx_buffer, 0, UART_RX_BUF_SIZE);
+	        __enable_irq();
+
+	        // Procesa el nuevo comando para decidir si cambia de estado
+	        ProcessUARTCommand((char*)command_buffer);
+
+	    }
+	    else {
+            // Parámetros de la línea
+            const float y_constante = 2.0f; // Distancia de la línea al centro (en cm)
+            const float x_inicio = -4.0f;   // Punto X inicial
+            const float x_fin = 4.0f;       // Punto X final
+            const uint16_t points = 100;
+            const uint16_t delay = 20;
+
+            // Bucle para dibujar la línea
+            for (uint16_t i = 0; i < points; i++) {
+                // Interpolar para obtener la posición X actual
+                float x = x_inicio + (x_fin - x_inicio) * i / (points - 1);
+                float y = y_constante; // La coordenada Y es siempre la misma
+
+                uint16_t servo_angles[3];
+                cartesianToServoAngles(x, y, servo_angles);
+
+                __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, servo_angles[0]);
+                __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, servo_angles[1]);
+                __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, servo_angles[2]);
+                HAL_Delay(delay);
+            }
+
+	    }
+
+	}
+	return stateMachine.state;
 
 	default:
 		{

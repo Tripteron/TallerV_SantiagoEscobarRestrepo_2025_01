@@ -11,7 +11,7 @@ typedef enum
 {
 	IDLE,
 	CIRCULO,
-	//BOTON_SW,
+	LINEA_PARALELA_AB,
 	PROCESANDO_COMANDO
 	//DISPLAY,
 } e_PosibleStates;
